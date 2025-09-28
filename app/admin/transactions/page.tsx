@@ -1,39 +1,28 @@
-// app/admin/transactions/page.tsx
-import ScreenSection from "@/components/mobile/ScreenSection";
+import { prisma } from "@/lib/prisma";
+import { formatPKR } from "@/lib/util";
 
-export const dynamic = "force-dynamic";
+export default async function AdminTx() {
+  const rows = await prisma.payment.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { payer: true, lease: { include: { property: true } } }
+  });
 
-export default function AdminTransactions() {
-  const txns = [
-    { date: "2025-10-01", user: "Ali", method: "Raast", amount: "PKR 120,000", ref: "RB-23091" },
-    { date: "2025-10-01", user: "Sana", method: "Card", amount: "PKR 120,000", ref: "RB-23090" },
-  ];
   return (
-    <div className="space-y-4">
-      <ScreenSection title="Transactions (demo)">
-        <table className="w-full text-sm">
-          <thead className="opacity-70">
-            <tr>
-              <th className="text-left py-2">Date</th>
-              <th className="text-left py-2">User</th>
-              <th className="text-left py-2">Method</th>
-              <th className="text-right py-2">Amount</th>
-              <th className="text-right py-2">Ref</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5 dark:divide-white/10">
-            {txns.map((t) => (
-              <tr key={t.ref}>
-                <td className="py-2">{t.date}</td>
-                <td className="py-2">{t.user}</td>
-                <td className="py-2">{t.method}</td>
-                <td className="py-2 text-right">{t.amount}</td>
-                <td className="py-2 text-right">{t.ref}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScreenSection>
+    <div className="max-w-md mx-auto p-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Transactions</h1>
+        <a href="/api/export/transactions" className="text-sm underline opacity-80">Export CSV</a>
+      </div>
+      <div className="mt-4 space-y-2">
+        {rows.map(r=>(
+          <div key={r.id} className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2">
+            <div className="font-medium">{formatPKR(r.amount)} • {r.status}</div>
+            <div className="text-sm">{r.payer.email} • {r.method.toUpperCase()} • {r.lease.property.title}</div>
+            <div className="text-xs opacity-70">{r.ref} • {r.createdAt.toISOString()}</div>
+          </div>
+        ))}
+        {!rows.length && <div className="text-sm opacity-70">No transactions.</div>}
+      </div>
     </div>
   );
 }
