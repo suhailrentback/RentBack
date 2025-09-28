@@ -1,33 +1,30 @@
+// app/api/admin/transactions/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request) {
-  const session = await getServerSession();
-  if ((session as any)?.role !== 'ADMIN') return NextResponse.json({ error: "forbidden" }, { status: 403 });
+// Simple in-memory/demo data – replace with real DB later
+const demoTransactions = [
+  {
+    id: "txn_demo_001",
+    createdAt: new Date().toISOString(),
+    tenantEmail: "tenant@rentback.app",
+    landlord: "Sunrise Apartments",
+    amountPKR: 120000,
+    method: "RAAST",
+    status: "POSTED",
+    ref: "RB-0001"
+  },
+  {
+    id: "txn_demo_002",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    tenantEmail: "tenant@rentback.app",
+    landlord: "Canal View Flats",
+    amountPKR: 95000,
+    method: "CARD",
+    status: "PENDING",
+    ref: "RB-0002"
+  }
+];
 
-  const url = new URL(req.url);
-  const q = url.searchParams.get("q") ?? "";
-  const status = url.searchParams.get("status") ?? "";
-  const take = Number(url.searchParams.get("take") ?? 100);
-
-  const payments = await prisma.payment.findMany({
-    where: {
-      AND: [
-        status ? { status: status as any } : {},
-        q ? {
-          OR: [
-            { ref: { contains: q, mode: 'insensitive' } },
-            { method: { contains: q, mode: 'insensitive' } },
-            { payer: { email: { contains: q, mode: 'insensitive' } } },
-          ]
-        } : {}
-      ]
-    },
-    orderBy: { createdAt: 'desc' },
-    take,
-    include: { payer: true, lease: { include: { property: true } } }
-  });
-
-  return NextResponse.json({ payments });
+export async function GET() {
+  return NextResponse.json({ items: demoTransactions });
 }
