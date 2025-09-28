@@ -1,0 +1,14 @@
+/* Card radius + shadow helpers if you need them */
+.card { border-radius: 1rem; border: 1px solid color-mix(in oklab, canvastext 10%, transparent); background: color-mix(in oklab, canvas 96%, transparent); }
+
+/* Skeleton */
+.skel { position: relative; overflow: hidden; background: color-mix(in oklab, canvastext 8%, transparent); border-radius: .75rem; }
+.skel::after { content:""; position:absolute; inset:0; background: linear-gradient(90deg, transparent, color-mix(in oklab, canvastext 12%, transparent) 40%, transparent 80%); transform: translateX(-100%); animation: sh 1.2s infinite; }
+@keyframes sh { 100% { transform: translateX(100%);} }
+
+/* Print receipts (A4-ish) */
+@media print {
+  nav, header, footer, .no-print { display: none !important; }
+  .print-card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  body { background: #fff !important; }
+}
