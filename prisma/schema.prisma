@@ -1,74 +1,85 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
 
+// Since you're in demo mode/no real DB yet, use a local sqlite file.
+// `prisma generate` doesn't need a DB connection, so this is fine for Vercel builds.
 datasource db {
-  provider = "sqlite"   // swap to "postgresql" when ready
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
-enum Role { TENANT LANDLORD ADMIN }
-enum PaymentStatus { PENDING POSTED FAILED }
+enum Role {
+  TENANT
+  LANDLORD
+  ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  POSTED
+  FAILED
+}
 
 model User {
-  id        String  @id @default(cuid())
-  email     String  @unique
+  id        String   @id @default(cuid())
+  email     String   @unique
   name      String?
-  role      Role    @default(TENANT)
+  role      Role     @default(TENANT)
   createdAt DateTime @default(now())
-  // credentials demo only
-  password  String?  // DO NOT use in prod; replace with OAuth/email magic-link
 
-  leases    Lease[] 
+  // credentials demo only — do NOT use in prod
+  password  String?
+
+  leases    Lease[]
   payments  Payment[] @relation("UserPayments")
   rewards   RewardEntry[]
 }
 
 model Property {
-  id        String @id @default(cuid())
-  title     String
-  address   String
-  landlord  User   @relation(fields: [landlordId], references: [id])
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  landlord  User     @relation(fields: [landlordId], references: [id])
   landlordId String
   leases    Lease[]
   createdAt DateTime @default(now())
 }
 
 model Lease {
-  id          String @id @default(cuid())
-  tenant      User   @relation(fields: [tenantId], references: [id])
-  tenantId    String
-  property    Property @relation(fields: [propertyId], references: [id])
-  propertyId  String
-  monthlyRent Int
-  currency    String @default("PKR")
-  active      Boolean @default(true)
-  createdAt   DateTime @default(now())
-  payments    Payment[]
+  id         String   @id @default(cuid())
+  tenant     User     @relation(fields: [tenantId], references: [id])
+  tenantId   String
+  property   Property @relation(fields: [propertyId], references: [id])
+  propertyId String
+  monthlyPKR Int
+  startDate  DateTime
+  endDate    DateTime?
+  createdAt  DateTime @default(now())
+
+  payments   Payment[]
 }
 
 model Payment {
-  id          String @id @default(cuid())
-  lease       Lease  @relation(fields: [leaseId], references: [id])
-  leaseId     String
-  payer       User   @relation("UserPayments", fields: [payerId], references: [id])
-  payerId     String
-  amount      Int    // in paisa? here use PKR whole for simplicity
-  method      String // "raast" | "card" | "wallet" (string for MVP)
-  ref         String // human ref shown to bank
-  status      PaymentStatus @default(PENDING)
-  postedAt    DateTime?
-  createdAt   DateTime @default(now())
-  rewardEntries RewardEntry[]
+  id         String         @id @default(cuid())
+  lease      Lease          @relation(fields: [leaseId], references: [id])
+  leaseId    String
+  user       User           @relation("UserPayments", fields: [userId], references: [id])
+  userId     String
+  amountPKR  Int
+  status     PaymentStatus  @default(PENDING)
+  reference  String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 }
 
 model RewardEntry {
-  id        String @id @default(cuid())
-  user      User   @relation(fields: [userId], references: [id])
-  userId    String
-  payment   Payment? @relation(fields: [paymentId], references: [id])
-  paymentId String?
-  points    Int
-  reason    String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  points     Int
+  note       String?
+  createdAt  DateTime @default(now())
 }
