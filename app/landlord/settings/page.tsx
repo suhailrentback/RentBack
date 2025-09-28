@@ -1,32 +1,20 @@
-"use client";
-export const dynamic = "force-dynamic";
+// app/landlord/settings/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
+export const dynamic = "force-dynamic";
 
 export default function LandlordSettings() {
   return (
-    <AppShell>
-      <SectionNav
-        base="/landlord"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/ledger", label: "Ledger" },
-          { href: "/settings", label: "Settings" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Payout details (demo)</div>
-          <div className="grid gap-2">
-            <input className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 outline-none" placeholder="Bank IBAN" />
-            <input className="px-3 py-2 rounded-lg border border-white/10 bg-white/5 outline-none" placeholder="Account Title" />
-            <Button>Save</Button>
-          </div>
-        </Card>
-      </div>
-    </AppShell>
+    <div className="space-y-4">
+      <ScreenSection title="Payout account">
+        <div className="text-sm space-y-2">
+          <div>Bank: HBL</div>
+          <div>IBAN: PK00 HABB 0000 0000 0000 0000</div>
+          <button className="mt-2 rounded-lg px-3 py-2 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
+            Update
+          </button>
+        </div>
+      </ScreenSection>
+    </div>
   );
 }
