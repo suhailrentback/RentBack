@@ -1,25 +1,25 @@
-// app/tenant/rewards/page.tsx
-import ScreenSection from "@/components/mobile/ScreenSection";
+import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export default async function RewardsPage() {
+  // Server query for total + entries
+  const entries = await prisma.rewardEntry.findMany({ orderBy: { createdAt: 'desc' }});
+  const total = entries.reduce((s,e)=>s+e.points,0);
 
-export default function TenantRewards() {
   return (
-    <div className="space-y-4">
-      <ScreenSection title="Your balance">
-        <div className="text-3xl font-bold">12,500 pts</div>
-        <div className="opacity-70 text-sm mt-1">Earned this month: 250 pts</div>
-      </ScreenSection>
-
-      <ScreenSection title="Redeem">
-        <div className="grid grid-cols-2 gap-3">
-          {["Food", "Travel", "Shopping", "Bill credit"].map((c) => (
-            <button key={c} className="rounded-xl px-4 py-3 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
-              {c}
-            </button>
-          ))}
-        </div>
-      </ScreenSection>
+    <div className="max-w-md mx-auto p-4">
+      <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Total points</div>
+        <div className="text-3xl font-extrabold">{total.toLocaleString()}</div>
+      </div>
+      <div className="mt-4 space-y-2">
+        {entries.map(e=>(
+          <div key={e.id} className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2">
+            <div className="font-medium">+{e.points} pts</div>
+            <div className="text-xs opacity-70">{e.reason}</div>
+          </div>
+        ))}
+        {!entries.length && <div className="text-sm opacity-70">No rewards yet.</div>}
+      </div>
     </div>
   );
 }
