@@ -1,5 +1,5 @@
-// middleware.ts
-export { auth as middleware } from "./app/api/auth/[...nextauth]/route";
+// middleware.ts (fallback)
+export { default as middleware } from "next-auth/middleware";
 
 export const config = {
   matcher: ["/tenant/:path*", "/landlord/:path*", "/admin/:path*"],
