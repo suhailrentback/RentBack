@@ -1,35 +1,38 @@
-// app/tenant/page.tsx
-import Link from "next/link";
-import ScreenSection from "@/components/mobile/ScreenSection";
-import StatCard from "@/components/mobile/StatCard";
+import { getServerSession } from "next-auth";
+import { prisma } from "@/lib/prisma";
+import { formatPKR } from "@/lib/util";
 
-export const dynamic = "force-dynamic";
+export default async function TenantHome() {
+  const session = await getServerSession();
+  const user = await prisma.user.findUnique({ where: { email: session?.user?.email! }});
+  const lease = await prisma.lease.findFirst({
+    where: { tenantId: user!.id, active: true },
+    include: { property: true }
+  });
 
-export default function TenantHome() {
+  const last = await prisma.payment.findFirst({
+    where: { payerId: user!.id },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const due = lease?.monthlyRent ?? 0;
+
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
-        <StatCard label="Points" value="12,500" hint="+250 this month" />
-        <StatCard label="Next rent due" value="Oct 05" hint="PKR 120,000" />
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-bold">Tenant</h1>
+      <div className="mt-4 rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Property</div>
+        <div className="font-medium">{lease?.property.title} — {lease?.property.address}</div>
+        <div className="mt-3 text-sm opacity-70">Due this month</div>
+        <div className="text-2xl font-extrabold">{formatPKR(due)}</div>
       </div>
 
-      <ScreenSection title="Quick actions">
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/tenant/pay" className="rounded-xl px-4 py-3 text-center font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
-            Pay rent
-          </Link>
-          <Link href="/tenant/rewards" className="rounded-xl px-4 py-3 text-center font-semibold border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
-            Rewards
-          </Link>
+      <div className="mt-4 rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Last activity</div>
+        <div className="font-medium">
+          {last ? `${last.status} • ${formatPKR(last.amount)} • ${last.method.toUpperCase()}` : "No payments yet"}
         </div>
-      </ScreenSection>
-
-      <ScreenSection title="Recent activity">
-        <ul className="text-sm space-y-2">
-          <li>• Payment received · PKR 120,000 · Ref RB-23091</li>
-          <li>• 250 points earned · On-time streak ×3</li>
-        </ul>
-      </ScreenSection>
+      </div>
     </div>
   );
 }
