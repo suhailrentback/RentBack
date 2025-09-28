@@ -1,35 +1,22 @@
-"use client";
+// app/admin/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+import StatCard from "@/components/mobile/StatCard";
+
 export const dynamic = "force-dynamic";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-import Link from "next/link";
-
-export default function AdminHome() {
+export default function AdminDash() {
   return (
-    <AppShell>
-      <SectionNav
-        base="/admin"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/transactions", label: "Transactions" },
-          { href: "/users", label: "Users" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold">Admin overview</div>
-          <div className="text-sm opacity-80">Operations: review transactions, users.</div>
-        </Card>
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Shortcuts</div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/admin/transactions" className="underline">Transactions</Link>
-            <Link href="/admin/users" className="underline">Users</Link>
-          </div>
-        </Card>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="MTD Volume" value="PKR 1.2M" />
+        <StatCard label="Users" value="342" />
       </div>
-    </AppShell>
+      <ScreenSection title="System notices">
+        <ul className="text-sm space-y-2">
+          <li>• Sandbox settlement 23:59 processed.</li>
+          <li>• Rewards batch queued (02:00).</li>
+        </ul>
+      </ScreenSection>
+    </div>
   );
 }
