@@ -1,46 +1,39 @@
-"use client";
+// app/admin/transactions/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+
 export const dynamic = "force-dynamic";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-
 export default function AdminTransactions() {
-  const tx = [
-    { ref: "RB-100201", user: "Ayesha Khan", amount: "PKR 120,000", method: "Bank Transfer", status: "Sent" },
-    { ref: "RB-100202", user: "Ayesha Khan", amount: "PKR 120,000", method: "Card", status: "Succeeded" },
+  const txns = [
+    { date: "2025-10-01", user: "Ali", method: "Raast", amount: "PKR 120,000", ref: "RB-23091" },
+    { date: "2025-10-01", user: "Sana", method: "Card", amount: "PKR 120,000", ref: "RB-23090" },
   ];
-
   return (
-    <AppShell>
-      <SectionNav
-        base="/admin"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/transactions", label: "Transactions" },
-          { href: "/users", label: "Users" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="font-semibold">Transactions (demo)</div>
-            <Button variant="outline">Export CSV</Button>
-          </div>
-          <div className="text-sm mt-2">
-            {tx.map((r) => (
-              <div key={r.ref} className="py-2 border-b border-white/10 grid grid-cols-5 gap-2 items-center">
-                <div className="opacity-80">{r.ref}</div>
-                <div>{r.user}</div>
-                <div className="font-medium">{r.amount}</div>
-                <div className="text-xs opacity-75">{r.method}</div>
-                <div className="text-xs opacity-70">{r.status}</div>
-              </div>
+    <div className="space-y-4">
+      <ScreenSection title="Transactions (demo)">
+        <table className="w-full text-sm">
+          <thead className="opacity-70">
+            <tr>
+              <th className="text-left py-2">Date</th>
+              <th className="text-left py-2">User</th>
+              <th className="text-left py-2">Method</th>
+              <th className="text-right py-2">Amount</th>
+              <th className="text-right py-2">Ref</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5 dark:divide-white/10">
+            {txns.map((t) => (
+              <tr key={t.ref}>
+                <td className="py-2">{t.date}</td>
+                <td className="py-2">{t.user}</td>
+                <td className="py-2">{t.method}</td>
+                <td className="py-2 text-right">{t.amount}</td>
+                <td className="py-2 text-right">{t.ref}</td>
+              </tr>
             ))}
-          </div>
-        </Card>
-      </div>
-    </AppShell>
+          </tbody>
+        </table>
+      </ScreenSection>
+    </div>
   );
 }
