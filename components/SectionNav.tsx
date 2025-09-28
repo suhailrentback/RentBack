@@ -1,20 +1,39 @@
-'use client';
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+"use client";
 
-export default function SectionNav({ base, items }:{ base:string; items: {href:string; label:string}[] }){
-  const path = usePathname();
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+type Item = { href: string; label: string };
+
+export default function SectionNav({
+  base = "",
+  items,
+}: {
+  base?: string;
+  items: Item[];
+}) {
+  const path = usePathname() || "/";
   return (
-    <nav className="sticky top-14 z-20 bg-white/70 dark:bg-black/30 backdrop-blur border-b border-black/10 dark:border-white/10">
-      <div className="max-w-4xl mx-auto grid grid-flow-col auto-cols-fr">
-        {items.map(it=>{
-          const active = path === `${base}${it.href}`;
+    <div className="border-b border-black/10 dark:border-white/10 bg-white/50 dark:bg-black/20 backdrop-blur">
+      <div className="max-w-6xl mx-auto flex">
+        {items.map((it) => {
+          const href = `${base}${it.href}`;
+          const active = path === href;
           return (
-            <Link key={it.href} href={`${base}${it.href}`} className={`px-4 py-3 text-center font-medium ${active?'text-brand border-b-2 border-brand':'opacity-80 hover:opacity-100'}`}>{it.label}</Link>
+            <Link
+              key={it.href}
+              href={href}
+              className={`px-4 py-3 text-center font-medium ${
+                active
+                  ? "text-brand border-b-2 border-brand"
+                  : "opacity-80 hover:opacity-100"
+              }`}
+            >
+              {it.label}
+            </Link>
           );
         })}
       </div>
-    </nav>
+    </div>
   );
 }
