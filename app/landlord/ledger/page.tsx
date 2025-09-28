@@ -1,40 +1,35 @@
-"use client";
+// app/landlord/ledger/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+
 export const dynamic = "force-dynamic";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-
-export default function Ledger() {
-  const rows = [
-    { ref: "RB-100201", unit: "DHA Phase 6 — A2", amount: "PKR 120,000", status: "Sent" },
-    { ref: "RB-100202", unit: "DHA Phase 6 — A2", amount: "PKR 120,000", status: "Succeeded" },
-  ];
-
+export default function LandlordLedger() {
   return (
-    <AppShell>
-      <SectionNav
-        base="/landlord"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/ledger", label: "Ledger" },
-          { href: "/settings", label: "Settings" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Payments ledger (demo)</div>
-          <div className="text-sm">
-            {rows.map((r) => (
-              <div key={r.ref} className="py-2 border-b border-white/10 flex items-center justify-between">
-                <div className="opacity-80">{r.unit}</div>
-                <div className="font-medium">{r.amount}</div>
-                <div className="text-xs opacity-70">{r.status}</div>
-              </div>
+    <div className="space-y-4">
+      <ScreenSection title="Ledger (demo)">
+        <table className="w-full text-sm">
+          <thead className="opacity-70">
+            <tr>
+              <th className="text-left py-2">Date</th>
+              <th className="text-left py-2">Tenant</th>
+              <th className="text-right py-2">Amount</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5 dark:divide-white/10">
+            {[
+              { d: "2025-10-01", t: "Ali", a: "PKR 120,000" },
+              { d: "2025-09-01", t: "Sana", a: "PKR 120,000" },
+              { d: "2025-09-01", t: "Hamza", a: "PKR 120,000" },
+            ].map((row) => (
+              <tr key={row.d + row.t}>
+                <td className="py-2">{row.d}</td>
+                <td className="py-2">{row.t}</td>
+                <td className="py-2 text-right">{row.a}</td>
+              </tr>
             ))}
-          </div>
-        </Card>
-      </div>
-    </AppShell>
+          </tbody>
+        </table>
+      </ScreenSection>
+    </div>
   );
 }
