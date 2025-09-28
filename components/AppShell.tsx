@@ -1,29 +1,54 @@
-'use client';
-import React from 'react';
-import Link from 'next/link';
-import Button from '@/components/ui/Button';
-import { strings } from '@/lib/i18n';
-import ThemeLangProvider, { useTL } from '@/components/providers/ThemeLangProvider';
+// components/AppShell.tsx
+"use client";
 
-function ShellInner({ children }: {children: React.ReactNode}) {
+import Link from "next/link";
+import React from "react";
+import { useTL } from "@/components/providers/ThemeLangProvider";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { strings } from "@/lib/i18n";
+
+export default function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, setLang, theme, setTheme } = useTL();
   const t = strings[lang];
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[var(--rb-bg)] dark:text-white">
-      <header className="sticky top-0 z-30 h-14 flex items-center justify-between px-4 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur">
-        <Link href="/" className="font-bold text-brand">RentBack</Link>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={()=> setLang(lang==='en'?'ur':'en')}>{lang==='en'?t.urdu:t.english}</Button>
-          <Button variant="outline" onClick={()=> setTheme(theme==='dark'?'light':'dark')}>{theme==='dark'?t.light:t.dark}</Button>
-          <Link href="/sign-in"><Button variant="solid">{t.signIn}</Button></Link>
+    <div className={theme === "dark" ? "bg-[#0b0b0b] text-white min-h-screen" : "bg-white text-slate-900 min-h-screen"}>
+      {/* Top Bar */}
+      <header className="sticky top-0 z-40 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-[#0b0b0b]/70 backdrop-blur">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-bold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 11.5L12 4l9 7.5" />
+              <path d="M5 10v9h14v-9" />
+            </svg>
+            <span>RentBack</span>
+          </Link>
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setLang(lang === "en" ? "ur" : "en")}>
+              {lang === "en" ? t.urdu : t.english}
+            </Button>
+            <Button variant="outline" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+              {theme === "dark" ? t.light : t.dark}
+            </Button>
+            <Link href="/sign-in">
+              {/* CHANGED: solid → default */}
+              <Button variant="default">{t.signIn}</Button>
+            </Link>
+          </div>
         </div>
       </header>
-      <main className="max-w-4xl mx-auto p-4">{children}</main>
-      <footer className="p-6 text-sm opacity-70 text-center border-t border-black/10 dark:border-white/10">© {new Date().getFullYear()} RentBack</footer>
+
+      {/* Page */}
+      <main className="max-w-6xl mx-auto p-4">
+        <Card>{children}</Card>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-8 text-center opacity-70">
+        © {new Date().getFullYear()} RentBack
+      </footer>
     </div>
   );
-}
-
-export default function AppShell({ children }:{children:React.ReactNode}){
-  return <ThemeLangProvider><ShellInner>{children}</ShellInner></ThemeLangProvider>
 }
