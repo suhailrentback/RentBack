@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rb-bg: #0b0b0b;
+  --rb-fg: #111827;
+}
+
+html, body {
+  height: 100%;
+}
+
+.rb-card {
+  @apply rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 p-4;
+}
