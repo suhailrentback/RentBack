@@ -1,5 +1,3 @@
-You accidentally pasted my commentary line into app/page.tsx. Replace the file entirely with this clean version (no curly quotes, no prose at the top):
-
 "use client";
 export const dynamic = "force-dynamic";
 
