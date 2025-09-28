@@ -1,35 +1,24 @@
-"use client";
-export const dynamic = "force-dynamic";
+// app/landlord/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+import StatCard from "@/components/mobile/StatCard";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-import Link from "next/link";
+export const dynamic = "force-dynamic";
 
 export default function LandlordHome() {
   return (
-    <AppShell>
-      <SectionNav
-        base="/landlord"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/ledger", label: "Ledger" },
-          { href: "/settings", label: "Settings" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold">Overview</div>
-          <div className="text-sm opacity-80">Your rentals, at a glance.</div>
-        </Card>
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Shortcuts</div>
-          <div className="flex gap-3 text-sm">
-            <Link href="/landlord/ledger" className="underline">Ledger</Link>
-            <Link href="/landlord/settings" className="underline">Settings</Link>
-          </div>
-        </Card>
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard label="This month collected" value="PKR 360,000" hint="3 tenants" />
+        <StatCard label="Outstanding" value="PKR 120,000" hint="1 due soon" />
       </div>
-    </AppShell>
+
+      <ScreenSection title="Latest payments">
+        <ul className="text-sm space-y-2">
+          <li>• Ali · PKR 120,000 · Oct 01 · Raast</li>
+          <li>• Sana · PKR 120,000 · Oct 01 · Card</li>
+          <li>• Hamza · PKR 120,000 · Sep 01 · Raast</li>
+        </ul>
+      </ScreenSection>
+    </div>
   );
 }
