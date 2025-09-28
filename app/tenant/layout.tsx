@@ -1,22 +1,23 @@
-import React from 'react';
-import AppShell from '@/components/AppShell';
-import SectionNav from '@/components/SectionNav';
-import ThemeLangProvider, { useTL } from '@/components/providers/ThemeLangProvider';
-import { strings } from '@/lib/i18n';
+"use client";
+export const dynamic = "force-dynamic";
 
-function TenantNav() {
-  const { lang } = useTL(); const t = strings[lang];
-  return <SectionNav base="/tenant" items={[
-    { href: '', label: t.nav.home},
-    { href: '/pay', label: t.nav.pay},
-    { href: '/rewards', label: t.nav.rewards},
-    { href: '/profile', label: t.nav.profile},
-  ]} />
-}
+import React from "react";
+import AppShell from "@/components/AppShell";
+import SectionNav from "@/components/SectionNav";
 
-export default function Layout({ children }:{children:React.ReactNode}){
-  return <AppShell>
-    <TenantNav />
-    <div className="max-w-4xl mx-auto p-4">{children}</div>
-  </AppShell>;
+export default function TenantLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AppShell>
+      <SectionNav
+        base="/tenant"
+        items={[
+          { href: "", label: "Home" },
+          { href: "/pay", label: "Pay" },
+          { href: "/rewards", label: "Rewards" },
+          { href: "/profile", label: "Profile" },
+        ]}
+      />
+      <div className="mt-3">{children}</div>
+    </AppShell>
+  );
 }
