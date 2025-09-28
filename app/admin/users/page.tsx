@@ -1,39 +1,36 @@
-"use client";
+// app/admin/users/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+
 export const dynamic = "force-dynamic";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-
 export default function AdminUsers() {
-  const users = [
-    { id: "u_1001", name: "Ayesha Khan", role: "tenant" },
-    { id: "u_1002", name: "Ahmed Raza", role: "landlord" },
+  const rows = [
+    { name: "Ali", role: "Tenant", status: "Active" },
+    { name: "Sana", role: "Tenant", status: "Active" },
+    { name: "Hamza", role: "Landlord", status: "Active" },
   ];
   return (
-    <AppShell>
-      <SectionNav
-        base="/admin"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/transactions", label: "Transactions" },
-          { href: "/users", label: "Users" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Users (demo)</div>
-          <div className="text-sm">
-            {users.map((u) => (
-              <div key={u.id} className="py-2 border-b border-white/10 flex items-center justify-between">
-                <div className="opacity-80">{u.name}</div>
-                <div className="text-xs uppercase opacity-70">{u.role}</div>
-                <div className="text-xs opacity-60">{u.id}</div>
-              </div>
+    <div className="space-y-4">
+      <ScreenSection title="Users (demo)">
+        <table className="w-full text-sm">
+          <thead className="opacity-70">
+            <tr>
+              <th className="text-left py-2">Name</th>
+              <th className="text-left py-2">Role</th>
+              <th className="text-right py-2">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-black/5 dark:divide-white/10">
+            {rows.map((r) => (
+              <tr key={r.name}>
+                <td className="py-2">{r.name}</td>
+                <td className="py-2">{r.role}</td>
+                <td className="py-2 text-right">{r.status}</td>
+              </tr>
             ))}
-          </div>
-        </Card>
-      </div>
-    </AppShell>
+          </tbody>
+        </table>
+      </ScreenSection>
+    </div>
   );
 }
