@@ -1,4 +1,6 @@
+// components/RightDrawer.tsx
 "use client";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 
 type Props = {
@@ -18,103 +20,151 @@ export default function RightDrawer({
   onToggleTheme,
   onToggleLang,
 }: Props) {
+  const panelRef = useRef<HTMLDivElement | null>(null);
+
+  // close on ESC
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  // basic focus handling
+  useEffect(() => {
+    if (open && panelRef.current) {
+      const previous = document.activeElement as HTMLElement | null;
+      panelRef.current.focus();
+      return () => previous?.focus();
+    }
+  }, [open]);
+
   return (
     <>
-      {/* Backdrop */}
+      {/* Overlay */}
       <div
-        aria-hidden
+        className={`fixed inset-0 z-50 transition-opacity ${
+          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        } bg-black/30 backdrop-blur-sm`}
         onClick={onClose}
-        className={`fixed inset-0 bg-black/30 transition-opacity ${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        aria-hidden={!open}
       />
-      {/* Panel */}
+
+      {/* Drawer panel */}
       <aside
-        className={`fixed top-0 right-0 h-full w-[86%] max-w-[380px] bg-white dark:bg-[#111] border-l border-black/10 dark:border-white/10 shadow-xl
-        transition-transform ${open ? "translate-x-0" : "translate-x-full"}`}
+        ref={panelRef}
+        tabIndex={-1}
+        className={`fixed top-0 right-0 z-50 h-full w-[85%] max-w-sm transform transition-transform
+          bg-white dark:bg-[#0f0f0f] border-l border-black/10 dark:border-white/10 shadow-xl
+          ${open ? "translate-x-0" : "translate-x-full"}`}
         role="dialog"
         aria-modal="true"
         aria-label="Menu"
       >
-        <div className="p-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
-          <div className="font-semibold">Menu</div>
+        {/* Header */}
+        <div className="h-14 flex items-center justify-between px-4 border-b border-black/10 dark:border-white/10">
+          <div className="flex items-center gap-2 font-semibold">
+            <span className="text-emerald-600 dark:text-emerald-400">☰</span>
+            <span>Menu</span>
+          </div>
           <button
             onClick={onClose}
-            className="rounded-lg px-3 py-1.5 text-sm border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+            aria-label="Close menu"
+            className="h-9 w-9 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
           >
-            Close
+            ×
           </button>
         </div>
 
-        <nav className="p-2">
-          <Section label="App sections">
-            <DrawerLink href="/tenant" label="Tenant demo" />
-            <DrawerLink href="/landlord" label="Landlord demo" />
-            <DrawerLink href="/admin" label="Admin demo" />
-          </Section>
+        {/* Content */}
+        <div className="p-4 space-y-6">
+          {/* Quick toggles */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
+            <h3 className="text-sm font-medium mb-2 opacity-80">Preferences</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={onToggleTheme}
+                className="px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm"
+              >
+                {theme === "dark" ? "Light mode" : "Dark mode"}
+              </button>
+              <button
+                onClick={onToggleLang}
+                className="px-3 py-2 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm"
+              >
+                {lang === "en" ? "اردو" : "English"}
+              </button>
+            </div>
+          </div>
 
-          <Section label="Account">
-            <button className="drawer-btn" onClick={onToggleLang}>
-              {lang === "en" ? "Switch to Urdu" : "اردو سے انگریزی"} <span className="opacity-60 ml-auto">{lang.toUpperCase()}</span>
-            </button>
-            <button className="drawer-btn" onClick={onToggleTheme}>
-              {theme === "dark" ? "Light mode" : "Dark mode"} <span className="opacity-60 ml-auto">{theme}</span>
-            </button>
-            <button className="drawer-btn" onClick={() => alert("Stub: sign out")}>
-              Sign out
-            </button>
-          </Section>
+          {/* App sections (optional deep links) */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10">
+            <div className="p-3 border-b border-black/10 dark:border-white/10">
+              <h3 className="text-sm font-medium opacity-80">App</h3>
+            </div>
+            <nav className="p-1">
+              <DrawerLink href="/tenant" label="Tenant Home" onClose={onClose} />
+              <DrawerLink href="/tenant/pay" label="Pay Rent" onClose={onClose} />
+              <DrawerLink href="/tenant/rewards" label="Rewards" onClose={onClose} />
+              <DrawerLink href="/tenant/profile" label="Profile" onClose={onClose} />
+            </nav>
+          </div>
 
-          <Section label="Company">
-            <DrawerLink href="/privacy" label="Privacy" />
-            <DrawerLink href="/terms" label="Terms" />
-            <DrawerLink href="/founder" label="Founder" />
-            <a className="drawer-a" href="mailto:founders@rentback.pk">Contact</a>
-          </Section>
-        </nav>
+          {/* Other roles (if you want them visible) */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10">
+            <div className="p-3 border-b border-black/10 dark:border-white/10">
+              <h3 className="text-sm font-medium opacity-80">Other areas</h3>
+            </div>
+            <nav className="p-1">
+              <DrawerLink href="/landlord" label="Landlord" onClose={onClose} />
+              <DrawerLink href="/admin" label="Admin" onClose={onClose} />
+            </nav>
+          </div>
 
-        <style jsx>{`
-          .drawer-btn {
-            width: 100%;
-            text-align: left;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid hsl(0 0% 0% / .08);
-            background: transparent;
-            margin-bottom: 8px;
-          }
-          :global(html.dark) .drawer-btn {
-            border-color: hsl(0 0% 100% / .12);
-          }
-          .drawer-a, .drawer-link {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid hsl(0 0% 0% / .08);
-            margin-bottom: 8px;
-          }
-          :global(html.dark) .drawer-a, :global(html.dark) .drawer-link {
-            border-color: hsl(0 0% 100% / .12);
-          }
-        `}</style>
+          {/* Footer links */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10">
+            <div className="p-3 border-b border-black/10 dark:border-white/10">
+              <h3 className="text-sm font-medium opacity-80">Legal & Info</h3>
+            </div>
+            <nav className="p-1">
+              <DrawerLink href="/privacy" label="Privacy" onClose={onClose} />
+              <DrawerLink href="/terms" label="Terms" onClose={onClose} />
+              <DrawerLink href="/founder" label="Founder" onClose={onClose} />
+              <a
+                className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10"
+                href="mailto:founders@rentback.pk"
+                onClick={onClose}
+              >
+                <span>Contact</span>
+                <span className="opacity-60">↗</span>
+              </a>
+            </nav>
+          </div>
+        </div>
       </aside>
     </>
   );
 }
 
-function Section({ label, children }: React.PropsWithChildren<{ label: string }>) {
+function DrawerLink({
+  href,
+  label,
+  onClose,
+}: {
+  href: string;
+  label: string;
+  onClose: () => void;
+}) {
   return (
-    <div className="mb-5">
-      <div className="text-xs uppercase tracking-wide opacity-60 px-1 mb-2">{label}</div>
-      <div>{children}</div>
-    </div>
-  );
-}
-
-function DrawerLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link href={href} className="drawer-link">
+    <Link
+      href={href}
+      onClick={onClose}
+      className="flex items-center justify-between px-3 py-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/10"
+    >
       <span>{label}</span>
+      <span className="opacity-60">›</span>
     </Link>
   );
 }
