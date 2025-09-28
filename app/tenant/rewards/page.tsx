@@ -1,41 +1,25 @@
-"use client";
+// app/tenant/rewards/page.tsx
+import ScreenSection from "@/components/mobile/ScreenSection";
+
 export const dynamic = "force-dynamic";
 
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
-import Card from "@/components/ui/Card";
-import Button from "@/components/ui/Button";
-
-export default function RewardsPage() {
+export default function TenantRewards() {
   return (
-    <AppShell>
-      <SectionNav
-        base="/tenant"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/pay", label: "Pay" },
-          { href: "/rewards", label: "Rewards" },
-          { href: "/profile", label: "Profile" },
-        ]}
-      />
-      <div className="grid gap-3 mt-3">
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Rewards catalog (demo)</div>
-          <div className="grid grid-cols-2 gap-2">
-            {["Jazz Load", "Daraz Voucher", "Careem Credit", "Foodpanda"].map((r) => (
-              <div key={r} className="p-3 rounded-xl border border-white/10 bg-white/5">
-                <div className="font-medium">{r}</div>
-                <div className="text-xs opacity-70">Save up to 5%</div>
-                <Button size="sm" className="mt-2">Redeem</Button>
-              </div>
-            ))}
-          </div>
-        </Card>
-        <Card className="p-4">
-          <div className="font-semibold mb-2">Recent redemptions</div>
-          <div className="text-sm opacity-70">No redemptions yet.</div>
-        </Card>
-      </div>
-    </AppShell>
+    <div className="space-y-4">
+      <ScreenSection title="Your balance">
+        <div className="text-3xl font-bold">12,500 pts</div>
+        <div className="opacity-70 text-sm mt-1">Earned this month: 250 pts</div>
+      </ScreenSection>
+
+      <ScreenSection title="Redeem">
+        <div className="grid grid-cols-2 gap-3">
+          {["Food", "Travel", "Shopping", "Bill credit"].map((c) => (
+            <button key={c} className="rounded-xl px-4 py-3 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
+              {c}
+            </button>
+          ))}
+        </div>
+      </ScreenSection>
+    </div>
   );
 }
