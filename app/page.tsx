@@ -1,35 +1,43 @@
-import React from 'react'
-import AppShell from '@/components/AppShell'
-import Card from '@/components/ui/Card'
-import Button from '@/components/ui/Button'
-import ThemeLangProvider, { useTL } from '@/components/providers/ThemeLangProvider'
-import { strings } from '@/lib/i18n'
+"use client";
+export const dynamic = "force-dynamic";
 
-function Landing() {
-  const { lang } = useTL();
-  const t = strings[lang];
-  return (
-    <div className="grid gap-6">
-      <div className="text-center space-y-3">
-        <h1 className="text-3xl font-bold">{t.app}</h1>
-        <p className="opacity-80">{t.tagline}</p>
-        <div className="flex gap-2 justify-center">
-          <a href="/tenant"><Button>{t.cta}</Button></a>
-          <a href="/sign-in"><Button variant="outline">{t.signIn}</Button></a>
-        </div>
-      </div>
-      <Card>
-        <div className="font-semibold mb-2">What is RentBack?</div>
-        <p className="opacity-80">Pay rent easily and earn rewards. Designed for Pakistan, inspired by the best fintech UX.</p>
-      </Card>
-    </div>
-  )
-}
+import Link from "next/link";
+import AppShell from "@/components/AppShell";
+import Button from "@/components/ui/Button";
+import Card from "@/components/ui/Card";
+import { useTL } from "@/components/providers/ThemeLangProvider";
 
-export default function Page() {
+export default function LandingPage() {
+  const { t } = useTL();
+
   return (
     <AppShell>
-      <Landing />
+      <section className="grid gap-6 md:grid-cols-2 items-center">
+        <div className="space-y-4">
+          <h1 className="text-3xl md:text-4xl font-extrabold">
+            RentBack — Pay rent, earn rewards
+          </h1>
+          <p className="opacity-80">
+            Pakistan-first fintech experience: rent payments, points, and clean ledgers for
+            tenants & landlords.
+          </p>
+          <div className="flex gap-3">
+            <Link href="/sign-in">
+              <Button>{t.signIn}</Button>
+            </Link>
+            <Link href="/tenant">
+              <Button variant="outline">Explore tenant</Button>
+            </Link>
+          </div>
+        </div>
+        <Card className="p-6">
+          <div className="text-sm opacity-80 mb-2">Preview</div>
+          <div className="rounded-2xl h-48 md:h-56 bg-gradient-to-br from-emerald-600 to-teal-400 shadow-lg" />
+          <div className="mt-3 text-sm">
+            Clean UI · Dark/Light · English/Urdu · Mobile-first
+          </div>
+        </Card>
+      </section>
     </AppShell>
-  )
+  );
 }
