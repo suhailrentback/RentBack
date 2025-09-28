@@ -1,45 +1,38 @@
-// app/tenant/pay/page.tsx
-import ScreenSection from "@/components/mobile/ScreenSection";
+import { getServerSession } from "next-auth";
+import { prisma } from "@/lib/prisma";
+import { formatPKR } from "@/lib/util";
 
-export const dynamic = "force-dynamic";
+export default async function TenantHome() {
+  const session = await getServerSession();
+  const user = await prisma.user.findUnique({ where: { email: session?.user?.email! }});
+  const lease = await prisma.lease.findFirst({
+    where: { tenantId: user!.id, active: true },
+    include: { property: true }
+  });
 
-export default function TenantPay() {
+  const last = await prisma.payment.findFirst({
+    where: { payerId: user!.id },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const due = lease?.monthlyRent ?? 0;
+
   return (
-    <div className="space-y-4">
-      <ScreenSection title="Pay your rent">
-        <form className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <label className="text-sm">
-              <span className="block mb-1 opacity-70">Amount (PKR)</span>
-              <input type="number" defaultValue={120000} className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2" />
-            </label>
-            <label className="text-sm">
-              <span className="block mb-1 opacity-70">Reference</span>
-              <input type="text" placeholder="RB-Ref-2025-10" className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2" />
-            </label>
-          </div>
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-bold">Tenant</h1>
+      <div className="mt-4 rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Property</div>
+        <div className="font-medium">{lease?.property.title} — {lease?.property.address}</div>
+        <div className="mt-3 text-sm opacity-70">Due this month</div>
+        <div className="text-2xl font-extrabold">{formatPKR(due)}</div>
+      </div>
 
-          <label className="text-sm block">
-            <span className="block mb-1 opacity-70">Method</span>
-            <select className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2">
-              <option>Raast (Bank Transfer)</option>
-              <option>Debit/Credit Card</option>
-              <option>Wallet</option>
-            </select>
-          </label>
-
-          <button type="submit" className="w-full rounded-xl px-4 py-3 font-semibold bg-emerald-600 text-white hover:bg-emerald-700">
-            Submit payment
-          </button>
-        </form>
-      </ScreenSection>
-
-      <ScreenSection title="Recent receipts">
-        <ul className="text-sm space-y-2">
-          <li>• Oct 01 · PKR 120,000 · Raast · RB-23091</li>
-          <li>• Sep 01 · PKR 120,000 · Card · RB-22760</li>
-        </ul>
-      </ScreenSection>
+      <div className="mt-4 rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Last activity</div>
+        <div className="font-medium">
+          {last ? `${last.status} • ${formatPKR(last.amount)} • ${last.method.toUpperCase()}` : "No payments yet"}
+        </div>
+      </div>
     </div>
   );
 }
