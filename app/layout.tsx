@@ -1,23 +1,23 @@
-import "./globals.css";
-import type { Metadata } from "next";
-import { ThemeLangProvider } from "@/components/providers/ThemeLangProvider";
-
-export const metadata: Metadata = {
-  title: "RentBack",
-  description: "Pay rent, earn rewards — PK",
-};
-
-// prevent static export errors by forcing dynamic rendering
+"use client";
 export const dynamic = "force-dynamic";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+import React from "react";
+import AppShell from "@/components/AppShell";
+import SectionNav from "@/components/SectionNav";
+
+export default function TenantLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
-        <ThemeLangProvider initialLang="en" initialTheme="dark">
-          {children}
-        </ThemeLangProvider>
-      </body>
-    </html>
+    <AppShell>
+      <SectionNav
+        base="/tenant"
+        items={[
+          { href: "", label: "Home" },
+          { href: "/pay", label: "Pay" },
+          { href: "/rewards", label: "Rewards" },
+          { href: "/profile", label: "Profile" },
+        ]}
+      />
+      <div className="mt-3">{children}</div>
+    </AppShell>
   );
 }
