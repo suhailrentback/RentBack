@@ -1,3 +1,5 @@
+Here’s your cleaned app/page.tsx with “BILT” removed and a Founder link added next to Privacy in the footer.
+
 "use client";
 export const dynamic = "force-dynamic";
 
@@ -137,7 +139,8 @@ export default function LandingPage() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span>© {new Date().getFullYear()} RentBack</span>
             <div className="flex gap-4">
-              <a href="#" className="hover:opacity-100 opacity-80">Privacy</a>
+              <Link href="/privacy" className="hover:opacity-100 opacity-80">Privacy</Link>
+              <Link href="/founder" className="hover:opacity-100 opacity-80">Founder</Link>
               <a href="#" className="hover:opacity-100 opacity-80">Terms</a>
               <a href="mailto:founders@rentback.pk" className="hover:opacity-100 opacity-80">Contact</a>
             </div>
@@ -180,7 +183,7 @@ const copy = {
     signIn: "Sign in",
     h1a: "Pay rent, earn",
     h1b: "rewards.",
-    sub: "A BILT-style experience built for Pakistan—Raast, cards & wallets, and a modern rewards marketplace.",
+    sub: "A modern rent-payments experience for Pakistan — Raast, cards & wallets, and a local rewards marketplace.",
     cta: "Get started",
     learn: "Learn more",
     point1: "Pay via Raast, card, or wallet",
@@ -194,7 +197,7 @@ const copy = {
     signIn: "سائن اِن",
     h1a: "کرایہ ادا کریں،",
     h1b: "انعامات حاصل کریں۔",
-    sub: "پاکستان کے لیے تیار کردہ بِلٹ اسٹائل تجربہ — راست، کارڈز اور والیٹس، اور مقامی ریوارڈز۔",
+    sub: "پاکستان کے لیے جدید کرایہ ادائیگی کا تجربہ — راست، کارڈز اور والیٹس، اور مقامی ریوارڈز مارکیٹ پلیس۔",
     cta: "شروع کریں",
     learn: "مزید جانیں",
     point1: "راست، کارڈ یا والیٹ سے ادائیگی",
