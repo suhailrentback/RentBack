@@ -1,35 +1,30 @@
-// app/landlord/ledger/page.tsx
-import ScreenSection from "@/components/mobile/ScreenSection";
+import { prisma } from "@/lib/prisma";
+import { formatPKR } from "@/lib/util";
 
-export const dynamic = "force-dynamic";
+export default async function LedgerPage() {
+  const rows = await prisma.payment.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { lease: { include: { property: true } }, payer: true }
+  });
 
-export default function LandlordLedger() {
+  const totals = rows.reduce((s,r)=> s + (r.status==='POSTED'? r.amount:0), 0);
+
   return (
-    <div className="space-y-4">
-      <ScreenSection title="Ledger (demo)">
-        <table className="w-full text-sm">
-          <thead className="opacity-70">
-            <tr>
-              <th className="text-left py-2">Date</th>
-              <th className="text-left py-2">Tenant</th>
-              <th className="text-right py-2">Amount</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/5 dark:divide-white/10">
-            {[
-              { d: "2025-10-01", t: "Ali", a: "PKR 120,000" },
-              { d: "2025-09-01", t: "Sana", a: "PKR 120,000" },
-              { d: "2025-09-01", t: "Hamza", a: "PKR 120,000" },
-            ].map((row) => (
-              <tr key={row.d + row.t}>
-                <td className="py-2">{row.d}</td>
-                <td className="py-2">{row.t}</td>
-                <td className="py-2 text-right">{row.a}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </ScreenSection>
+    <div className="max-w-md mx-auto p-4">
+      <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+        <div className="text-sm opacity-70">Collected</div>
+        <div className="text-3xl font-extrabold">{formatPKR(totals)}</div>
+        <a href="/api/export/transactions" className="text-sm underline opacity-80">Export CSV</a>
+      </div>
+      <div className="mt-4 space-y-2">
+        {rows.map(r=>(
+          <div key={r.id} className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2">
+            <div className="font-medium">{r.lease.property.title}</div>
+            <div className="text-sm">{formatPKR(r.amount)} • {r.method.toUpperCase()} • {r.status}</div>
+            <div className="text-xs opacity-70">{r.payer.email} • {r.ref}</div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
