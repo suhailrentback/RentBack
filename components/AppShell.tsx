@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import RightDrawer from "./RightDrawer";
 
-export default function MobileAppShell({ children }: { children: React.ReactNode }) {
+export default function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
 
   // theme/lang persisted on <html>
@@ -30,10 +30,10 @@ export default function MobileAppShell({ children }: { children: React.ReactNode
     } catch {}
   }, [theme, lang]);
 
-  // right drawer state
+  // right drawer state (top-right trigger)
   const [open, setOpen] = useState(false);
 
-  // bottom nav items (no “More” here)
+  // bottom nav items (no header; app-like)
   const items = [
     { href: "/tenant", icon: "🏠", label: "Home" },
     { href: "/tenant/pay", icon: "💸", label: "Pay" },
@@ -55,7 +55,7 @@ export default function MobileAppShell({ children }: { children: React.ReactNode
       {/* page content */}
       <div className="pb-20 pt-2">{children}</div>
 
-      {/* bottom nav (unchanged) */}
+      {/* bottom nav */}
       <nav className="fixed bottom-0 inset-x-0 h-16 border-t border-black/10 dark:border-white/10 bg-white/85 dark:bg-black/40 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/30">
         <div className="max-w-md mx-auto px-2 h-full grid grid-cols-4 items-center">
           {items.map((it) => {
@@ -74,7 +74,7 @@ export default function MobileAppShell({ children }: { children: React.ReactNode
         </div>
       </nav>
 
-      {/* right drawer (contains theme/lang toggles now) */}
+      {/* right drawer holds theme/lang toggles + links */}
       <RightDrawer
         open={open}
         onClose={() => setOpen(false)}
