@@ -2,9 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import RightDrawer from "./RightDrawer";
 
-export default function AppShell({ children }: { children: React.ReactNode }) {
+export default function MobileAppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
 
   // theme/lang persisted on <html>
@@ -19,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       if (l === "en" || l === "ur") setLang(l);
     } catch {}
   }, []);
+
   useEffect(() => {
     document.documentElement.setAttribute("lang", lang);
     document.documentElement.setAttribute("dir", lang === "ur" ? "rtl" : "ltr");
@@ -30,10 +30,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     } catch {}
   }, [theme, lang]);
 
-  // right drawer state (top-right trigger)
-  const [open, setOpen] = useState(false);
-
-  // bottom nav items (no header; app-like)
+  // bottom nav items
   const items = [
     { href: "/tenant", icon: "🏠", label: "Home" },
     { href: "/tenant/pay", icon: "💸", label: "Pay" },
@@ -43,14 +40,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-white text-slate-900 dark:bg-[#0b0b0b] dark:text-white">
-      {/* top-right menu button */}
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Open menu"
-        className="fixed top-3 right-3 z-50 h-10 w-10 rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10"
-      >
-        <span className="text-lg leading-none">☰</span>
-      </button>
+      {/* top-right quick toggles */}
+      <div className="fixed top-3 right-3 z-50 flex gap-2">
+        <button
+          onClick={() => setLang((p) => (p === "en" ? "ur" : "en"))}
+          className="px-3 py-2 text-sm rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur hover:bg-black/5 dark:hover:bg-white/10"
+          aria-label="toggle language"
+        >
+          {lang === "en" ? "اردو" : "English"}
+        </button>
+        <button
+          onClick={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}
+          className="px-3 py-2 text-sm rounded-xl border border-black/10 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur hover:bg-black/5 dark:hover:bg-white/10"
+          aria-label="toggle theme"
+        >
+          {theme === "dark" ? "Light" : "Dark"}
+        </button>
+      </div>
 
       {/* page content */}
       <div className="pb-20 pt-2">{children}</div>
@@ -73,16 +79,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
-
-      {/* right drawer holds theme/lang toggles + links */}
-      <RightDrawer
-        open={open}
-        onClose={() => setOpen(false)}
-        theme={theme}
-        lang={lang}
-        onToggleTheme={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}
-        onToggleLang={() => setLang((p) => (p === "en" ? "ur" : "en"))}
-      />
     </div>
   );
 }
