@@ -1,22 +1,16 @@
+// app/landlord/layout.tsx
 "use client";
 export const dynamic = "force-dynamic";
 
-import React from "react";
-import AppShell from "@/components/AppShell";
-import SectionNav from "@/components/SectionNav";
+import { AppFrame } from "@/components/mobile/AppChrome";
+import { HomeIcon, BankIcon, SettingsIcon, ListIcon } from "@/components/mobile/icons";
 
 export default function LandlordLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AppShell>
-      <SectionNav
-        base="/landlord"
-        items={[
-          { href: "", label: "Home" },
-          { href: "/ledger", label: "Ledger" },
-          { href: "/settings", label: "Settings" },
-        ]}
-      />
-      <div className="mt-3">{children}</div>
-    </AppShell>
-  );
+  const tabs = [
+    { href: "/landlord", label: "Home", icon: HomeIcon },
+    { href: "/landlord/ledger", label: "Ledger", icon: ListIcon },
+    { href: "/landlord/settings", label: "Settings", icon: SettingsIcon },
+    { href: "/tenant/pay", label: "Pay", icon: BankIcon }, // handy shortcut
+  ];
+  return <AppFrame title="Landlord" tabs={tabs}>{children}</AppFrame>;
 }
