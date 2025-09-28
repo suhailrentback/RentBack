@@ -1,23 +1,40 @@
-'use client';
-import React from 'react';
-import Card from '@/components/ui/Card'
-import { formatPKR } from '@/lib/demo'
+"use client";
+export const dynamic = "force-dynamic";
 
-export default function Ledger(){
-  const items = [
-    { ref:'RB-100201', ts: Date.now()-86400000*2, tenant:'Ali Khan', property:'DHA Phase 6', amount:120000, status:'sent' },
-    { ref:'RB-100202', ts: Date.now()-86400000, tenant:'Ali Khan', property:'DHA Phase 6', amount:120000, status:'succeeded' },
-    { ref:'RB-300777', ts: Date.now()-3600*1000*5, tenant:'Sara', property:'GreenView 12A', amount:180000, status:'initiated' },
+import AppShell from "@/components/AppShell";
+import SectionNav from "@/components/SectionNav";
+import Card from "@/components/ui/Card";
+
+export default function Ledger() {
+  const rows = [
+    { ref: "RB-100201", unit: "DHA Phase 6 — A2", amount: "PKR 120,000", status: "Sent" },
+    { ref: "RB-100202", unit: "DHA Phase 6 — A2", amount: "PKR 120,000", status: "Succeeded" },
   ];
-  return <Card>
-    <div className="font-semibold mb-2">Payments Ledger</div>
-    <div className="grid gap-2">
-      {items.map((r,i)=>(
-        <div key={i} className="p-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5">
-          <div className="flex items-center justify-between"><span>{r.tenant} — {r.property}</span><span>{formatPKR(r.amount)}</span></div>
-          <div className="text-xs opacity-80 flex justify-between"><span>Ref {r.ref}</span><span>{new Date(r.ts).toLocaleString('en-PK')} • {r.status}</span></div>
-        </div>
-      ))}
-    </div>
-  </Card>;
+
+  return (
+    <AppShell>
+      <SectionNav
+        base="/landlord"
+        items={[
+          { href: "", label: "Home" },
+          { href: "/ledger", label: "Ledger" },
+          { href: "/settings", label: "Settings" },
+        ]}
+      />
+      <div className="grid gap-3 mt-3">
+        <Card className="p-4">
+          <div className="font-semibold mb-2">Payments ledger (demo)</div>
+          <div className="text-sm">
+            {rows.map((r) => (
+              <div key={r.ref} className="py-2 border-b border-white/10 flex items-center justify-between">
+                <div className="opacity-80">{r.unit}</div>
+                <div className="font-medium">{r.amount}</div>
+                <div className="text-xs opacity-70">{r.status}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </AppShell>
+  );
 }
