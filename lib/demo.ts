@@ -1,4 +1,4 @@
-// Demo data + helpers used by landlord/admin pages
+// Demo data + helpers used by tenant/landlord/admin pages
 
 export type PaymentStatus = "initiated" | "sent" | "succeeded" | "refunded";
 export type Method = "Bank Transfer" | "Card" | "Wallet";
@@ -27,12 +27,35 @@ export type LedgerEntry = {
 
 const now = Date.now();
 
-function rnd(n: number) {
-  return Math.floor(Math.random() * n);
+// ---------- NEW: shared formatters ----------
+export function formatPKR(n: number): string {
+  try {
+    return new Intl.NumberFormat("en-PK", {
+      style: "currency",
+      currency: "PKR",
+      maximumFractionDigits: 0,
+    }).format(n);
+  } catch {
+    return `PKR ${Math.round(n).toLocaleString()}`;
+  }
 }
 
-function ref(prefix = "RB") {
+export function makeRef(prefix = "RB"): string {
   return `${prefix}-${Math.floor(100000 + Math.random() * 900000)}`;
+}
+
+// Optional: format numeric input as PKR without currency symbol (for inputs)
+export function formatPKRInput(raw: string): { view: string; value: number } {
+  const digits = raw.replace(/[^0-9]/g, "");
+  if (!digits) return { view: "", value: 0 };
+  const value = Number(digits);
+  const view = new Intl.NumberFormat("en-PK").format(value);
+  return { view, value };
+}
+
+// ---------- demo data ----------
+function rnd(n: number) {
+  return Math.floor(Math.random() * n);
 }
 
 export function getDemoTransactions(count = 24): Transaction[] {
@@ -50,7 +73,7 @@ export function getDemoTransactions(count = 24): Transaction[] {
     const method = methods[rnd(methods.length)];
     return {
       id: String(now - i * 60_000),
-      ref: ref("RB"),
+      ref: makeRef("RB"),
       tenant: tenants[rnd(tenants.length)],
       landlord: landlords[rnd(landlords.length)],
       amount: [85000, 95000, 100000, 120000, 180000][rnd(5)],
@@ -74,15 +97,18 @@ export function getDemoLedger(count = 18): LedgerEntry[] {
   }));
 }
 
+// ---------- CSV helpers ----------
 export function toCSV(rows: (string | number)[][]): string {
-  return rows.map((r) =>
-    r
-      .map((cell) => {
-        const s = String(cell ?? "");
-        return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      })
-      .join(",")
-  ).join("\n");
+  return rows
+    .map((r) =>
+      r
+        .map((cell) => {
+          const s = String(cell ?? "");
+          return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+        })
+        .join(",")
+    )
+    .join("\n");
 }
 
 export function downloadCSVBrowser(filename: string, rows: (string | number)[][]) {
