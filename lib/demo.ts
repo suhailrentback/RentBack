@@ -1,290 +1,136 @@
 // lib/demo.ts
-// Demo-only data + helpers (runs fully client-side with localStorage).
-// Provides: isDemo, formatPKR, payments, rewards, landlord ledger, admin CSVs, etc.
+export const isDemo = () => process.env.NEXT_PUBLIC_DEMO === "true";
 
-//
-// --------- Types
-//
-export type PaymentMethod = "Raast" | "Card" | "Wallet";
-export type PaymentStatus = "CREATED" | "SENT";
-
-export type Payment = {
-  id: string;
-  landlord: string;
-  amount: number; // PKR
-  method: PaymentMethod;
-  status: PaymentStatus;
-  createdAt: string; // ISO
-};
-
-export type Redemption = {
-  id: string;
-  brand: string;
-  amount: number; // voucher PKR
-  points: number; // points deducted (1pt == 1PKR in demo)
-  createdAt: string; // ISO
-  status: "POSTED";
-};
-
-//
-// --------- Env & LS keys
-//
-const canUseLS = typeof window !== "undefined";
-export const isDemo = () => {
-  // default true unless an env explicitly disables
-  if (typeof process !== "undefined") {
-    const v = (process.env.NEXT_PUBLIC_DEMO || "true").toLowerCase();
-    return v !== "false" && v !== "0";
-  }
-  return true;
-};
-
-const LS_POINTS = "rb-demo-points";
-const LS_REDEMPTIONS = "rb-demo-redemptions";
-const LS_PAYMENTS = "rb-demo-payments";
-const LS_REWARDED_IDS = "rb-demo-rewarded-ids";
-
-function readJSON<T>(key: string, fallback: T): T {
-  if (!canUseLS) return fallback;
+// --- currency ---
+export function formatPKR(n: number) {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(n);
   } catch {
-    return fallback;
+    return `PKR ${Math.round(n).toLocaleString("en-PK")}`;
   }
 }
-function writeJSON<T>(key: string, val: T) {
-  if (!canUseLS) return;
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch {}
-}
 
-//
-// --------- Seed
-//
+// --- localStorage keys (client only) ---
+const K = {
+  tenantPayments: "rb-demo-tenant-payments",
+  tenantRewards: "rb-demo-tenant-rewards",
+  landlordLedger: "rb-demo-landlord-ledger",
+  adminTx: "rb-demo-admin-tx",
+  role: "rb-role",
+};
+
+// --- seed once ---
+const SEED_FLAG = "rb-demo-seeded-v1";
 export function ensureSeed() {
-  if (!canUseLS || !isDemo()) return;
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem(SEED_FLAG)) return;
 
-  if (localStorage.getItem(LS_POINTS) == null) writeJSON(LS_POINTS, 12000);
-  if (localStorage.getItem(LS_REDEMPTIONS) == null)
-    writeJSON<Redemption[]>(LS_REDEMPTIONS, []);
-  if (localStorage.getItem(LS_REWARDED_IDS) == null)
-    writeJSON<string[]>(LS_REWARDED_IDS, []);
-
-  if (localStorage.getItem(LS_PAYMENTS) == null) {
-    const now = Date.now();
-    const seeded: Payment[] = [
-      {
-        id: "rb-pay-1001",
-        landlord: "Gulshan Residency",
-        amount: 65000,
-        method: "Raast",
-        status: "SENT",
-        createdAt: new Date(now - 14 * 86400000).toISOString(),
-      },
-      {
-        id: "rb-pay-1002",
-        landlord: "Al-Habib Apartments",
-        amount: 65000,
-        method: "Card",
-        status: "SENT",
-        createdAt: new Date(now - 44 * 86400000).toISOString(),
-      },
-      {
-        id: "rb-pay-1003",
-        landlord: "Crescent Towers",
-        amount: 70000,
-        method: "Wallet",
-        status: "CREATED",
-        createdAt: new Date(now - 2 * 86400000).toISOString(),
-      },
-    ];
-    writeJSON(LS_PAYMENTS, seeded);
-
-    // mark first two as rewarded so we don't double-credit on load
-    writeJSON(LS_REWARDED_IDS, ["rb-pay-1001", "rb-pay-1002"]);
-  }
-}
-
-//
-// --------- Utilities
-//
-export function formatPKR(n: number): string {
-  // Keep simple and predictable across locales
-  return `PKR ${Number(n || 0).toLocaleString("en-PK")}`;
-}
-
-function iso(d: Date | number | string) {
-  return new Date(d).toISOString();
-}
-
-//
-// --------- Points & Redemptions (Rewards)
-//
-export function getPointsBalance(): number {
-  ensureSeed();
-  return readJSON<number>(LS_POINTS, 0);
-}
-export function setPointsBalance(val: number) {
-  writeJSON<number>(LS_POINTS, Math.max(0, Math.floor(val)));
-}
-
-export function listRedemptions(): Redemption[] {
-  ensureSeed();
-  return readJSON<Redemption[]>(LS_REDEMPTIONS, []);
-}
-export function getRedemptionById(id: string): Redemption | null {
-  return listRedemptions().find((r) => r.id === id) || null;
-}
-
-export function pushRedemption(rec: Redemption) {
-  const arr = listRedemptions();
-  arr.unshift(rec);
-  writeJSON(LS_REDEMPTIONS, arr);
-}
-
-export function redeemVoucher(brand: string, amount: number): Redemption | null {
-  ensureSeed();
-  const pts = getPointsBalance();
-  const needed = Math.floor(amount);
-  if (pts < needed) return null;
-
-  const rec: Redemption = {
-    id: `rb-red-${Date.now()}`,
-    brand,
-    amount: needed,
-    points: needed,
-    createdAt: iso(Date.now()),
-    status: "POSTED",
-  };
-  setPointsBalance(pts - needed);
-  pushRedemption(rec);
-
-  // breadcrumb
-  console.warn("[demo] redeem", { brand, amount: needed, newBalance: getPointsBalance() });
-  return rec;
-}
-
-//
-// --------- Payments (Tenant) + accrual 1%
-//
-export function listPayments(): Payment[] {
-  ensureSeed();
-  return readJSON<Payment[]>(LS_PAYMENTS, []);
-}
-export function getPaymentById(id: string): Payment | null {
-  return listPayments().find((p) => p.id === id) || null;
-}
-export function upsertPayment(p: Payment) {
-  const arr = listPayments();
-  const i = arr.findIndex((x) => x.id === p.id);
-  if (i >= 0) arr[i] = p;
-  else arr.unshift(p);
-  writeJSON(LS_PAYMENTS, arr);
-}
-
-export function accrueForPayment(paymentId: string, amountPKR: number) {
-  ensureSeed();
-  const rewardedIds = readJSON<string[]>(LS_REWARDED_IDS, []);
-  if (rewardedIds.includes(paymentId)) return; // already credited
-
-  const add = Math.max(1, Math.floor(amountPKR * 0.01)); // 1%
-  setPointsBalance(getPointsBalance() + add);
-
-  rewardedIds.push(paymentId);
-  writeJSON(LS_REWARDED_IDS, rewardedIds);
-
-  console.warn("[demo] rewards accrual", {
-    paymentId,
-    amountPKR,
-    add,
-    newBalance: getPointsBalance(),
-  });
-}
-
-//
-// --------- Tenant context (used by receipt page)
-//
-export function getTenantContext() {
-  ensureSeed();
-  return {
-    points: getPointsBalance(),
-    payments: listPayments(),
-    redemptions: listRedemptions(),
-  };
-}
-
-//
-// --------- Landlord ledger (derive from SENT payments)
-//
-export function getLandlordLedger() {
-  // In demo, treat all SENT payments as ledger entries
-  const sent = listPayments().filter((p) => p.status === "SENT");
-  // pretend each payment belongs to the current landlord view if landlord matches
-  // (your /landlord/ledger page likely just lists all for demo)
-  return sent.map((p) => ({
-    id: p.id,
-    date: p.createdAt,
-    tenant: "Demo Tenant",
-    property: p.landlord,
-    amount: p.amount,
-    method: p.method,
-    status: "POSTED" as const,
-  }));
-}
-
-export function csvForLedger() {
-  const rows = [
-    ["id", "dateISO", "tenant", "property", "amountPKR", "method", "status"],
-    ...getLandlordLedger().map((r) => [
-      r.id,
-      new Date(r.date).toISOString(),
-      r.tenant,
-      r.property,
-      String(r.amount), // machine-friendly
-      r.method,
-      r.status,
-    ]),
+  const now = Date.now();
+  const payments = [
+    { id: "pmt_1001", createdAt: new Date(now - 86400e3 * 12).toISOString(), property: "Shahbaz Residency A-2", amount: 65000, method: "RAAST", status: "POSTED" as const },
+    { id: "pmt_1002", createdAt: new Date(now - 86400e3 * 40).toISOString(), property: "Shahbaz Residency A-2", amount: 65000, method: "CARD",  status: "POSTED" as const },
   ];
-  return rows.map((r) => r.map(escapeCSV).join(",")).join("\n");
+  const rewards = { balance: 1300, recent: [{ id: "rw_1", createdAt: new Date(now - 86400e3 * 5).toISOString(), partner: "Foodpanda PK", points: -500, status: "POSTED" as const }] };
+  const ledger  = payments.map(p => ({ id: p.id, date: p.createdAt, tenant: "Ali Raza", property: p.property, amount: p.amount, method: p.method, status: "POSTED" as const }));
+  const admin   = payments.map(p => ({ id: p.id, createdAt: p.createdAt, party: "Ali Raza", amount: p.amount, method: p.method, status: "POSTED" }));
+
+  localStorage.setItem(K.tenantPayments, JSON.stringify(payments));
+  localStorage.setItem(K.tenantRewards, JSON.stringify(rewards));
+  localStorage.setItem(K.landlordLedger, JSON.stringify(ledger));
+  localStorage.setItem(K.adminTx, JSON.stringify(admin));
+  localStorage.setItem(SEED_FLAG, "1");
 }
 
-//
-// --------- Admin transactions (aggregate all payments)
-//
-export function getAdminTransactions() {
-  return listPayments().map((p) => ({
-    id: p.id,
-    createdAt: p.createdAt,
-    party: p.landlord,
-    amount: p.amount,
-    method: p.method,
-    status: p.status === "SENT" ? "POSTED" : "PENDING",
-  }));
+// --- role cookie (for middleware) convenience ---
+export function getRole(): "TENANT"|"LANDLORD"|"ADMIN"|null {
+  if (typeof document === "undefined") return null;
+  const m = document.cookie.match(/(?:^|;)\s*rb-role=([^;]+)/);
+  return m ? (decodeURIComponent(m[1]) as any) : null;
 }
 
-export function csvForAdmin() {
-  const rows = [
-    ["id", "createdAtISO", "counterparty", "amountPKR", "method", "status"],
-    ...getAdminTransactions().map((r) => [
-      r.id,
-      new Date(r.createdAt).toISOString(),
-      r.party,
-      String(r.amount),
-      r.method,
-      r.status,
-    ]),
-  ];
-  return rows.map((r) => r.map(escapeCSV).join(",")).join("\n");
+// --- tenant payments ---
+export type DemoPayment = { id:string; createdAt:string; property:string; amount:number; method:"RAAST"|"CARD"|"WALLET"; status:"PENDING"|"POSTED"|"SENT"|"FAILED" };
+export function getTenantPayments(): DemoPayment[] {
+  if (typeof window === "undefined") return [];
+  ensureSeed();
+  return JSON.parse(localStorage.getItem(K.tenantPayments) || "[]");
+}
+export function createDemoPayment(input: { amount:number; property:string; method:"RAAST"|"CARD"|"WALLET" }) {
+  if (typeof window === "undefined") return;
+  const list = getTenantPayments();
+  const id = `pmt_${Date.now()}`;
+  list.unshift({ id, createdAt: new Date().toISOString(), property: input.property, amount: input.amount, method: input.method, status: "PENDING" });
+  localStorage.setItem(K.tenantPayments, JSON.stringify(list));
+  // mirror to landlord + admin right away
+  const ledger = getLandlordLedgerRaw();
+  ledger.unshift({ id, date: new Date().toISOString(), tenant: "Ali Raza", property: input.property, amount: input.amount, method: input.method, status: "POSTED" });
+  localStorage.setItem(K.landlordLedger, JSON.stringify(ledger));
+  const admin = getAdminTransactionsRaw();
+  admin.unshift({ id, createdAt: new Date().toISOString(), party: "Ali Raza", amount: input.amount, method: input.method, status: "POSTED" });
+  localStorage.setItem(K.adminTx, JSON.stringify(admin));
+  // add points (1% of payment) to rewards
+  addRewardPoints(Math.round(input.amount * 0.01), `Rent Payment`);
+  console.warn("[DEMO] create payment", id, input);
+  return id;
+}
+export function markPaymentSent(id: string) {
+  if (typeof window === "undefined") return;
+  const list = getTenantPayments();
+  const found = list.find(p => p.id === id);
+  if (found) { found.status = "SENT"; localStorage.setItem(K.tenantPayments, JSON.stringify(list)); }
+  console.warn("[DEMO] mark sent", id);
+}
+export function getPaymentById(id:string): DemoPayment | null {
+  return getTenantPayments().find(p => p.id === id) ?? null;
 }
 
-//
-// --------- Helpers (CSV escaping)
-//
-function escapeCSV(s: string) {
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replace(/"/g, '""')}"`;
-  }
-  return s;
+// --- rewards ---
+type RewardsState = { balance:number; recent:{ id:string; createdAt:string; partner:string; points:number; status:"POSTED" }[] };
+function getRewards(): RewardsState {
+  if (typeof window === "undefined") return { balance:0, recent:[] };
+  ensureSeed();
+  return JSON.parse(localStorage.getItem(K.tenantRewards) || `{"balance":0,"recent":[]}`);
+}
+function setRewards(r: RewardsState) { localStorage.setItem(K.tenantRewards, JSON.stringify(r)); }
+function addRewardPoints(points: number, partner = "RentBack") {
+  const r = getRewards();
+  r.balance += points;
+  r.recent.unshift({ id:`rw_${Date.now()}`, createdAt:new Date().toISOString(), partner, points, status:"POSTED" });
+  setRewards(r);
+}
+export function redeemVoucher(partner:string, cost:number) {
+  const r = getRewards();
+  if (r.balance < cost) throw new Error("Insufficient points");
+  r.balance -= cost;
+  r.recent.unshift({ id:`rw_${Date.now()}`, createdAt:new Date().toISOString(), partner, points:-cost, status:"POSTED" });
+  setRewards(r);
+}
+export function getRewardsContext() { return getRewards(); }
+
+// --- landlord ledger ---
+type LedgerRow = { id:string; date:string; tenant:string; property:string; amount:number; method:"RAAST"|"CARD"|"WALLET"; status:"POSTED" };
+function getLandlordLedgerRaw(): LedgerRow[] {
+  if (typeof window === "undefined") return [];
+  ensureSeed();
+  return JSON.parse(localStorage.getItem(K.landlordLedger) || "[]");
+}
+export function getLandlordLedger() { return getLandlordLedgerRaw(); }
+export function csvForLedger(rows: LedgerRow[]) {
+  const head = ["id","date","tenant","property","amount_pkr","method","status"].join(",");
+  const body = rows.map(r => [r.id, r.date, r.tenant, r.property, String(Math.round(r.amount)), r.method, r.status].join(",")).join("\n");
+  return head + "\n" + body;
+}
+
+// --- admin tx ---
+type AdminTx = { id:string; createdAt:string; party:string; amount:number; method:"RAAST"|"CARD"|"WALLET"; status:string };
+function getAdminTransactionsRaw(): AdminTx[] {
+  if (typeof window === "undefined") return [];
+  ensureSeed();
+  return JSON.parse(localStorage.getItem(K.adminTx) || "[]");
+}
+export function getAdminTransactions() { return getAdminTransactionsRaw(); }
+export function csvForAdmin(rows: AdminTx[]) {
+  const head = ["id","created_at","party","amount_pkr","method","status"].join(",");
+  const body = rows.map(r => [r.id, r.createdAt, r.party, String(Math.round(r.amount)), r.method, r.status].join(",")).join("\n");
+  return head + "\n" + body;
 }
