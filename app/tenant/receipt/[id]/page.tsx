@@ -1,69 +1,101 @@
+// app/tenant/receipt/[id]/page.tsx
 "use client";
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { getTenantContext, formatPKR } from "@/lib/demo";
+import { strings } from "@/lib/i18n";
 
-type P = {
-  id: string; createdAt: string; tenantEmail: string; landlord: string;
-  amountPKR: number; method: string; status: string; ref: string; memo?: string;
-};
+function FakeQR({ seed }: { seed: string }) {
+  // Tiny fake QR: deterministic grid from string hash
+  const size = 120, cells = 21;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const bits = Array.from({ length: cells * cells }, (_, i) => ((h >> (i % 31)) & 1) === 1);
+  const cell = size / cells;
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <rect width={size} height={size} fill="#fff" />
+      {bits.map((b, i) => {
+        if (!b) return null;
+        const x = (i % cells) * cell;
+        const y = Math.floor(i / cells) * cell;
+        return <rect key={i} x={x} y={y} width={cell - 1} height={cell - 1} fill="#111" />;
+      })}
+    </svg>
+  );
+}
 
 export default function ReceiptPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [p, setP] = useState<P | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!id) return;
-    fetch(`/api/tenant/payments/${id}`, { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => setP(d.item ?? null))
-      .finally(()=> setLoading(false));
-  }, [id]);
+  const [lang, setLang] = useState<"en" | "ur">("en");
+  useEffect(() => { const l = localStorage.getItem("rb-lang"); if (l === "ur" || l === "en") setLang(l); }, []);
+  const t = strings[lang];
 
-  if (loading) return <div className="max-w-md mx-auto p-4 text-sm opacity-70">Loading…</div>;
-  if (!p) return <div className="max-w-md mx-auto p-4 text-sm opacity-70">Not found.</div>;
+  const ctx = useMemo(() => getTenantContext(), []);
+  const p = ctx.payments.find(x => x.id === id);
+
+  if (!p) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="p-6 rounded-xl border border-black/10 dark:border-white/10">
+          <div className="font-semibold mb-2">Receipt not found</div>
+          <button onClick={() => router.back()} className="h-10 px-4 rounded-lg border">Go back</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold">Payment Receipt</h1>
-        <button
-          onClick={()=> window.print()}
-          className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm"
-        >
-          Print / Save PDF
-        </button>
+    <div className="min-h-screen bg-white text-slate-900 p-6 print:p-10 print:bg-white">
+      <div className="max-w-3xl mx-auto border border-black/10 rounded-2xl p-6">
+        <div className="flex items-center justify-between">
+          <div className="text-xl font-bold">RentBack</div>
+          <FakeQR seed={p.raastRef} />
+        </div>
+
+        <h1 className="mt-6 text-2xl font-bold">{t.tenant.receipt.title}</h1>
+        <p className="text-sm opacity-70">{t.tenant.receipt.disclaimer}</p>
+
+        <div className="grid md:grid-cols-2 gap-4 mt-6">
+          <div className="rounded-xl border border-black/10 p-4">
+            <div className="text-sm opacity-70">{t.tenant.receipt.date}</div>
+            <div className="font-medium">{new Date(p.createdAt).toLocaleString()}</div>
+          </div>
+          <div className="rounded-xl border border-black/10 p-4">
+            <div className="text-sm opacity-70">{t.tenant.receipt.ref}</div>
+            <div className="font-medium">{p.raastRef}</div>
+          </div>
+          <div className="rounded-xl border border-black/10 p-4">
+            <div className="text-sm opacity-70">{t.tenant.receipt.to}</div>
+            <div className="font-medium">{p.propertyName}</div>
+          </div>
+          <div className="rounded-xl border border-black/10 p-4">
+            <div className="text-sm opacity-70">{t.tenant.receipt.method}</div>
+            <div className="font-medium">{p.method}</div>
+          </div>
+        </div>
+
+        <div className="mt-6 p-6 rounded-2xl bg-emerald-50 border border-emerald-100">
+          <div className="text-sm opacity-70">{t.tenant.pay.amount}</div>
+          <div className="text-3xl font-extrabold">{formatPKR(p.amount)}</div>
+          <div className="mt-1 text-sm opacity-70">{t.tenant.receipt.status}: {p.status}</div>
+        </div>
+
+        <div className="mt-8 flex gap-2 no-print">
+          <button onClick={() => window.print()} className="h-11 px-4 rounded-xl bg-emerald-600 text-white">{t.tenant.receipt.print}</button>
+          <button onClick={() => window.history.back()} className="h-11 px-4 rounded-xl border">Close</button>
+        </div>
       </div>
 
-      <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
-        <Row k="Receipt #" v={p.ref} mono />
-        <Row k="Date" v={new Date(p.createdAt).toLocaleString()} />
-        <Row k="Tenant" v={p.tenantEmail} />
-        <Row k="Landlord / Property" v={p.landlord} />
-        <Row k="Amount" v={`₨ ${p.amountPKR.toLocaleString("en-PK")}`} />
-        <Row k="Method" v={p.method} />
-        <Row k="Status" v={p.status} />
-        {p.memo ? <Row k="Memo" v={p.memo} /> : null}
-      </div>
-
-      <div className="mt-4">
-        <button
-          onClick={()=> router.back()}
-          className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg_white/10 text-sm"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Row({ k, v, mono }: { k: string; v: string; mono?: boolean }) {
-  return (
-    <div className="flex items-center justify-between py-2 border-b last:border-0 border-black/10 dark:border-white/10">
-      <div className="text-sm opacity-70">{k}</div>
-      <div className={`text-sm ${mono ? "font-mono" : ""}`}>{v}</div>
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #fff !important; }
+        }
+      `}</style>
     </div>
   );
 }
