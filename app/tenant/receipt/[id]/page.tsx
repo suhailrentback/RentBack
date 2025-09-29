@@ -58,7 +58,8 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
             href="/tenant"
             className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
           >
-            ← {t.nav.home}
+            {/* FIX: use bottom.home instead of nav.home */}
+            ← {t.bottom.home}
           </Link>
 
           <button
@@ -86,7 +87,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
               href="/tenant"
               className="inline-block text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
             >
-              {t.nav.home}
+              {t.bottom.home}
             </Link>
           </div>
         )}
