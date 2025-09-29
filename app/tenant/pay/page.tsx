@@ -2,31 +2,28 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { strings } from "@/lib/i18n";
 import { createDemoPayment, formatPKR, getTenantPayments, markPaymentSent, type DemoPayment, ensureSeed } from "@/lib/demo";
 
 export default function TenantPayPage() {
-  const t = strings.en; // uses your current i18n; swap to lang state if you prefer
   const [list, setList] = useState<DemoPayment[]>([]);
   const [amount, setAmount] = useState<number>(65000);
   const [prop, setProp] = useState("Shahbaz Residency A-2");
   const [method, setMethod] = useState<"RAAST"|"CARD"|"WALLET">("RAAST");
 
-  useEffect(() => {
-    ensureSeed();
-    setList(getTenantPayments());
-  }, []);
-
+  useEffect(() => { ensureSeed(); setList(getTenantPayments()); }, []);
   function refresh() { setList(getTenantPayments()); }
 
   function create() {
-    if (!amount || !prop) return alert("Enter amount and property");
-    const id = createDemoPayment({ amount, property: prop, method });
-    refresh();
-    alert(`Demo payment created: ${id}`);
+    try {
+      if (!amount || !prop) { alert("Enter amount and property"); return; }
+      const id = createDemoPayment({ amount, property: prop, method });
+      refresh();
+      alert(`Demo payment created: ${id}`);
+    } catch (e:any) {
+      alert(e?.message || "Failed to create (demo)");
+    }
   }
-
-  function mark(id:string){ markPaymentSent(id); refresh(); }
+  function mark(id:string){ try { markPaymentSent(id); refresh(); } catch {} }
 
   return (
     <MobileAppShell>
@@ -45,7 +42,7 @@ export default function TenantPayPage() {
             <option value="CARD">Card</option>
             <option value="WALLET">Wallet</option>
           </select>
-          <button onClick={create} className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">Create Payment (Demo)</button>
+          <button type="button" onClick={create} className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">Create Payment (Demo)</button>
         </div>
 
         <h2 className="mt-8 mb-3 font-semibold">Recent</h2>
@@ -63,7 +60,7 @@ export default function TenantPayPage() {
                 </div>
               </div>
               <div className="mt-3 flex gap-2">
-                <button onClick={()=>mark(p.id)} className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Mark as Sent</button>
+                <button type="button" onClick={()=>mark(p.id)} className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Mark as Sent</button>
                 <Link href={`/tenant/receipt/${p.id}`} className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">View Receipt</Link>
               </div>
             </div>
