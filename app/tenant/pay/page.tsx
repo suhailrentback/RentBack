@@ -1,138 +1,187 @@
+// app/tenant/pay/page.tsx
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import MobileAppShell from "@/components/MobileAppShell";
+import { strings } from "@/lib/i18n";
+import {
+  getTenantContext,
+  createDemoPayment,
+  markPaymentSent,
+  csvForTenantPayments,
+  formatPKR,
+  type Method
+} from "@/lib/demo";
+import Link from "next/link";
 
-type Row = {
-  id: string; createdAt: string; landlord: string; amountPKR: number;
-  method: "RAAST" | "CARD" | "WALLET"; status: string; ref: string; memo?: string;
-};
+function SkeletonRow() {
+  return <div className="h-10 rounded-lg bg-black/5 dark:bg-white/10 animate-pulse" />;
+}
 
 export default function PayPage() {
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-
-  const [landlord, setLandlord] = useState("");
-  const [amount, setAmount] = useState<number | "">("");
-  const [method, setMethod] = useState<Row["method"]>("RAAST");
-  const [memo, setMemo] = useState("");
-
-  function load() {
-    setLoading(true);
-    fetch("/api/tenant/payments", { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => setRows(d.items ?? []))
-      .finally(()=> setLoading(false));
-  }
-
-  useEffect(() => { load(); }, []);
-
-  async function createPayment() {
-    if (!landlord || !amount) return alert("Enter landlord and amount");
-    setSubmitting(true);
+  const [lang, setLang] = useState<"en" | "ur">("en");
+  useEffect(() => {
     try {
-      const r = await fetch("/api/tenant/payments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tenantEmail: "tenant@rentback.app",
-          landlord,
-          amountPKR: Number(amount),
-          method,
-          memo,
-        }),
-      });
-      if (!r.ok) throw new Error(await r.text());
-      setLandlord(""); setAmount(""); setMemo("");
-      load();
-    } catch (e:any) {
-      alert(e.message ?? "Error");
-    } finally {
-      setSubmitting(false);
-    }
+      const l = localStorage.getItem("rb-lang");
+      if (l === "ur" || l === "en") setLang(l);
+    } catch {}
+  }, []);
+  const t = strings[lang];
+
+  // fake load skeleton
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(id);
+  }, []);
+
+  // demo data
+  const [version, setVersion] = useState(0); // bump to refresh lists
+  const ctx = useMemo(() => getTenantContext(), [version]);
+  const leases = ctx.leases;
+  const payments = ctx.payments;
+
+  // form
+  const [amount, setAmount] = useState<number | ''>('');
+  const [leaseId, setLeaseId] = useState(leases[0]?.id || '');
+  const [method, setMethod] = useState<Method>('RAAST');
+  const [memo, setMemo] = useState('');
+
+  function makePayment() {
+    if (!amount || !leaseId) return alert(t.tenant.pay.invalid);
+    const p = createDemoPayment({ tenantId: ctx.user.id, leaseId, amount: Number(amount), method, memo });
+    console.warn('[ui] payment created', p);
+    setVersion(v => v + 1);
+    setAmount('');
+    setMemo('');
   }
 
-  async function confirm(id: string) {
-    await fetch(`/api/tenant/payments/${id}/confirm`, { method: "POST" });
-    load();
+  function markSent(id: string) {
+    const p = markPaymentSent(id);
+    console.warn('[ui] payment marked sent', p?.id);
+    setVersion(v => v + 1);
+  }
+
+  function downloadCSV() {
+    const blob = new Blob([csvForTenantPayments(ctx.user.id)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "tenant-payments.csv"; a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
-    <div className="max-w-md mx-auto p-4">
-      <h1 className="text-xl font-semibold mb-3">Pay Rent</h1>
+    <MobileAppShell>
+      <div className="max-w-md mx-auto p-4">
+        <h1 className="text-xl font-bold">{t.tenant.pay.title}</h1>
+        <p className="text-sm opacity-70">{t.tenant.pay.subtitle}</p>
 
-      <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 mb-6">
-        <div className="grid gap-3">
-          <input
-            className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent"
-            placeholder="Landlord / Property"
-            value={landlord}
-            onChange={e=> setLandlord(e.target.value)}
-          />
-          <input
-            className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent"
-            placeholder="Amount (PKR)"
-            inputMode="numeric"
-            value={amount}
-            onChange={e=> setAmount(e.target.value === "" ? "" : Number(e.target.value))}
-          />
-          <select
-            className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent"
-            value={method}
-            onChange={e=> setMethod(e.target.value as Row["method"])}
-          >
-            <option value="RAAST">Raast</option>
-            <option value="CARD">Card</option>
-            <option value="WALLET">Wallet</option>
-          </select>
-          <input
-            className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent"
-            placeholder="Memo (optional)"
-            value={memo}
-            onChange={e=> setMemo(e.target.value)}
-          />
-          <button
-            onClick={createPayment}
-            disabled={submitting}
-            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60"
-          >
-            {submitting ? "Creating…" : "Create Payment (Demo)"}
+        {/* form card */}
+        <div className="mt-4 p-4 rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5">
+          <div className="grid gap-3">
+            <label className="text-sm opacity-80">
+              {t.tenant.pay.amount}
+              <input
+                value={amount}
+                onChange={(e) => setAmount(Number(e.target.value) || '')}
+                type="number"
+                inputMode="numeric"
+                className="mt-1 w-full h-11 rounded-xl px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-transparent"
+                placeholder="65000"
+              />
+            </label>
+
+            <label className="text-sm opacity-80">
+              {t.tenant.pay.lease}
+              <select
+                value={leaseId}
+                onChange={(e) => setLeaseId(e.target.value)}
+                className="mt-1 w-full h-11 rounded-xl px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-transparent"
+              >
+                {leases.map(l => <option key={l.id} value={l.id}>{l.propertyName}</option>)}
+              </select>
+            </label>
+
+            <label className="text-sm opacity-80">
+              {t.tenant.pay.method}
+              <select
+                value={method}
+                onChange={(e) => setMethod(e.target.value as Method)}
+                className="mt-1 w-full h-11 rounded-xl px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-transparent"
+              >
+                <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
+                <option value="CARD">{t.tenant.pay.methods.CARD}</option>
+                <option value="WALLET">{t.tenant.pay.methods.WALLET}</option>
+              </select>
+            </label>
+
+            <label className="text-sm opacity-80">
+              {t.tenant.pay.memo}
+              <input
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                className="mt-1 w-full h-11 rounded-xl px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-transparent"
+                placeholder="Sep rent"
+              />
+            </label>
+
+            <button
+              onClick={makePayment}
+              className="mt-2 h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+            >
+              {t.tenant.pay.create}
+            </button>
+          </div>
+        </div>
+
+        {/* recent */}
+        <div className="mt-6 flex items-center justify-between">
+          <h2 className="font-semibold">{t.tenant.pay.recent}</h2>
+          <button onClick={downloadCSV} className="text-sm px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
+            {t.tenant.pay.csv}
           </button>
         </div>
-      </div>
 
-      <h2 className="text-sm font-medium opacity-80 mb-2">Recent</h2>
-      {loading ? (
-        <p className="text-sm opacity-70">Loading…</p>
-      ) : rows.length === 0 ? (
-        <p className="text-sm opacity-70">No payments yet.</p>
-      ) : (
-        <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-          {rows.map(r => (
-            <div
-              key={r.id}
-              className="px-4 py-3 border-b last:border-0 border-black/10 dark:border-white/10"
-            >
+        <div className="mt-3 grid gap-2">
+          {loading && (
+            <>
+              <SkeletonRow /><SkeletonRow /><SkeletonRow />
+            </>
+          )}
+          {!loading && payments.length === 0 && (
+            <div className="p-4 rounded-xl border border-black/10 dark:border-white/10 text-sm opacity-80">
+              No payments yet — create one above to see it here.
+            </div>
+          )}
+          {!loading && payments.map(p => (
+            <div key={p.id} className="p-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-medium">{r.landlord}</div>
-                  <div className="text-xs opacity-70">{new Date(r.createdAt).toLocaleString()} • {r.method} • {r.status}</div>
+                  <div className="font-medium">{p.propertyName}</div>
+                  <div className="text-xs opacity-70">{new Date(p.createdAt).toLocaleString()}</div>
                 </div>
-                <div className="text-sm font-semibold">₨ {r.amountPKR.toLocaleString("en-PK")}</div>
+                <div className="text-right">
+                  <div className="font-semibold">{formatPKR(p.amount)}</div>
+                  <div className="text-xs opacity-70">{t.tenant.pay.statuses[p.status]}</div>
+                </div>
               </div>
-              {r.status === "PENDING" && (
-                <div className="mt-2">
-                  <button
-                    onClick={()=> confirm(r.id)}
-                    className="px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-xs"
-                  >
-                    Mark as Sent / Confirm
+              <div className="mt-2 flex gap-2">
+                {p.status !== 'POSTED' && (
+                  <button onClick={() => markSent(p.id)} className="h-9 px-3 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">
+                    {t.tenant.pay.actions.markSent}
                   </button>
-                </div>
-              )}
+                )}
+                <Link href={`/tenant/receipt/${p.id}`} className="h-9 px-3 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 inline-flex items-center">
+                  {t.tenant.pay.actions.receipt}
+                </Link>
+              </div>
             </div>
           ))}
         </div>
-      )}
-    </div>
+
+        <p className="mt-8 text-xs opacity-60">
+          {strings[lang].needHelp} <a className="underline hover:opacity-100" href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'help@rentback.app'}`}>{process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'help@rentback.app'}</a>
+        </p>
+      </div>
+    </MobileAppShell>
   );
 }
