@@ -88,7 +88,7 @@ export default function MobileAppShell({ children }: { children: React.ReactNode
       <nav className="fixed bottom-0 inset-x-0 h-16 border-t border-black/10 dark:border-white/10 bg-white/85 dark:bg-black/40 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-black/30">
         <div className="relative max-w-md mx-auto px-2 h-full grid grid-cols-4 items-center">
           {/* DEMO pill */}
-          {isDemo && (
+          {isDemo() && (
             <div className="absolute -top-6 left-3 text-[10px] px-2 py-0.5 rounded-full bg-amber-500 text-white shadow">
               {t.demo}
             </div>
