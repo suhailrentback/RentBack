@@ -3,92 +3,82 @@
 import { useEffect, useMemo, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import { strings } from "@/lib/i18n";
-import { getAdminTransactions, csvForAdmin, formatPKR } from "@/lib/demo";
+import { getAdminTransactions, formatPKR } from "@/lib/demo";
 
-type Lang = "en" | "ur";
-
-type PaymentMethod = "RAAST" | "CARD" | "WALLET" | string;
-
-type AdminTx = {
-  id: string;
-  createdAt?: string; // ISO
-  date?: string; // sometimes demo uses 'date'
-  amount: number;
-  method: PaymentMethod;
-  status: string; // "POSTED" | "PENDING" | "FAILED"
-  party?: string; // counterparty (tenant / landlord)
-  property?: string;
-  propertyName?: string; // tolerate alt key
-};
-
-function RowSkel() {
-  return <div className="h-16 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />;
-}
-
-function Empty({ lang }: { lang: Lang }) {
-  return (
-    <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-80">
-      {lang === "en"
-        ? "No transactions for this range. Try adjusting filters or export CSV for a wider window."
-        : "اس مدت کے لیے کوئی ٹرانزیکشن نہیں۔ فلٹرز تبدیل کریں یا CSV ایکسپورٹ آزمائیں۔"}
-    </div>
-  );
-}
+type PaymentMethod = "RAAST" | "CARD" | "WALLET";
 
 export default function AdminTransactionsPage() {
-  // language sync with the rest of the app
-  const [lang, setLang] = useState<Lang>("en");
-  useEffect(() => {
-    try {
-      const l = localStorage.getItem("rb-lang");
-      if (l === "en" || l === "ur") setLang(l);
-    } catch {}
-  }, []);
-  const t = strings[lang];
+  // Lang comes from <html lang=> via your app shell; just pick strings.en for labels
+  const t = strings.en;
 
-  // simple filters (client-side over demo data)
-  const [range, setRange] = useState<"30" | "90" | "all">("30");
-  const [method, setMethod] = useState<"ALL" | "RAAST" | "CARD" | "WALLET">("ALL");
-  const [search, setSearch] = useState("");
-
-  // load transactions from demo memory
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<AdminTx[]>([]);
+  const [rows, setRows] = useState<any[]>([]);
+
+  // Simple filters (status + last N days)
+  const [statusFilter, setStatusFilter] = useState<"ALL" | "POSTED" | "PENDING" | "FAILED">(
+    "ALL"
+  );
+  const [daysBack, setDaysBack] = useState<number>(30);
 
   useEffect(() => {
-    setLoading(true);
-    // simulate async to show skeletons nicely
-    setTimeout(() => {
-      const data = getAdminTransactions() as AdminTx[];
-      setRows(Array.isArray(data) ? data : []);
-      setLoading(false);
-    }, 250);
+    async function load() {
+      try {
+        const data = await getAdminTransactions(); // demo helper returns an array
+        setRows(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.warn("admin/transactions: load error", e);
+        setRows([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
   }, []);
 
-  // derived + filtered
   const filtered = useMemo(() => {
-    const now = new Date();
-    const daysLimit = range === "all" ? Infinity : range === "90" ? 90 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysBack);
 
-    return rows.filter((r) => {
-      // normalize fields
-      const when = new Date(r.createdAt || (r.date as string) || now.toISOString());
-      const within = (now.getTime() - when.getTime()) / (1000 * 60 * 60 * 24) <= daysLimit;
+    return rows.filter((r: any) => {
+      const createdAt = new Date(r.createdAt || r.date || Date.now());
+      const withinRange = createdAt >= cutoff;
 
-      const methodOk = method === "ALL" ? true : (r.method || "").toUpperCase() === method;
-      const q = search.trim().toLowerCase();
-      const name = (r.party || "").toLowerCase();
-      const prop = (r.property || r.propertyName || "").toLowerCase();
+      const status = (r.status || "").toUpperCase();
+      const statusMatch = statusFilter === "ALL" ? true : status === statusFilter;
 
-      const searchOk = q === "" || name.includes(q) || prop.includes(q) || (r.id || "").toLowerCase().includes(q);
-
-      return within && methodOk && searchOk;
+      return withinRange && statusMatch;
     });
-  }, [rows, range, method, search]);
+  }, [rows, statusFilter, daysBack]);
 
-  // CSV export (respects the same filtered set)
+  // Inline CSV builder (no csvForAdmin import)
   function downloadCSV() {
-    const csv = csvForAdmin(filtered as any); // demo helper returns a CSV string
+    const header = [
+      "id",
+      "createdAt",
+      "party",
+      "property",
+      "amount_pkr",
+      "method",
+      "status",
+    ];
+    const lines = filtered.map((r: any) => {
+      const when = new Date(r.createdAt || r.date || new Date().toISOString()).toISOString();
+      const party = String(r.party ?? r.tenant ?? "").replaceAll('"', '""');
+      const property = String(r.property ?? r.propertyName ?? "").replaceAll('"', '""');
+      const amt = Number(r.amount ?? 0);
+
+      return [
+        r.id ?? "",
+        when,
+        `"${party}"`,
+        `"${property}"`,
+        String(amt), // machine-readable (no commas)
+        r.method ?? "",
+        String(r.status ?? "").toUpperCase(),
+      ].join(",");
+    });
+
+    const csv = [header.join(","), ...lines].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -101,107 +91,129 @@ export default function AdminTransactionsPage() {
 
   return (
     <MobileAppShell>
-      <div className="max-w-md mx-auto px-4 pb-24">
-        {/* Title + actions */}
-        <div className="pt-4 pb-3 flex items-center justify-between">
-          <div className="text-lg font-semibold">
-            {lang === "en" ? "Transactions" : "ٹرانزیکشنز"}
+      <div className="max-w-md mx-auto p-4 pb-24">
+        {/* Header */}
+        <div className="mb-4">
+          <h1 className="text-xl font-bold">Admin — Transactions</h1>
+          <p className="text-sm opacity-70">
+            Filter and export recent payments across the platform.
+          </p>
+        </div>
+
+        {/* Filters + Actions */}
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 p-3 mb-4 bg-white dark:bg-white/5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col">
+              <label className="text-xs opacity-70 mb-1">Status</label>
+              <select
+                className="h-10 rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+              >
+                <option value="ALL">All</option>
+                <option value="POSTED">Posted</option>
+                <option value="PENDING">Pending</option>
+                <option value="FAILED">Failed</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs opacity-70 mb-1">Range</label>
+              <select
+                className="h-10 rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3"
+                value={String(daysBack)}
+                onChange={(e) => setDaysBack(Number(e.target.value))}
+              >
+                <option value="7">Last 7 days</option>
+                <option value="30">Last 30 days</option>
+                <option value="90">Last 90 days</option>
+              </select>
+            </div>
           </div>
-          <button
-            onClick={downloadCSV}
-            className="px-3 py-2 text-sm rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            {lang === "en" ? "Export CSV" : "CSV ایکسپورٹ"}
-          </button>
+
+          <div className="mt-3 flex justify-end">
+            <button
+              onClick={downloadCSV}
+              className="px-3 h-10 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="rounded-2xl border border-black/10 dark:border-white/10 p-3 bg-white dark:bg-white/5 mb-4 grid grid-cols-3 gap-2">
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value as any)}
-            className="col-span-1 px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent text-sm"
-            aria-label="Date range"
-          >
-            <option value="30">{lang === "en" ? "Last 30d" : "آخری 30 دن"}</option>
-            <option value="90">{lang === "en" ? "Last 90d" : "آخری 90 دن"}</option>
-            <option value="all">{lang === "en" ? "All time" : "ہمیشہ"}</option>
-          </select>
-
-          <select
-            value={method}
-            onChange={(e) => setMethod(e.target.value as any)}
-            className="col-span-1 px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent text-sm"
-            aria-label="Method"
-          >
-            <option value="ALL">{lang === "en" ? "All methods" : "تمام طریقے"}</option>
-            <option value="RAAST">Raast</option>
-            <option value="CARD">{lang === "en" ? "Card" : "کارڈ"}</option>
-            <option value="WALLET">{lang === "en" ? "Wallet" : "والیٹ"}</option>
-          </select>
-
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={lang === "en" ? "Search…" : "تلاش…"}
-            className="col-span-1 px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 bg-transparent text-sm"
-          />
-        </div>
-
-        {/* List */}
-        <div className="space-y-3">
-          {loading && (
-            <>
-              <RowSkel />
-              <RowSkel />
-              <RowSkel />
-            </>
-          )}
-
-          {!loading && filtered.length === 0 && <Empty lang={lang} />}
-
-          {!loading &&
-            filtered.map((r) => {
-              const when = new Date(r.createdAt || (r.date as string) || new Date().toISOString());
-              const title = r.property || r.propertyName || r.party || "—";
-              const amt = Number(r.amount || 0);
-
-              const badgeColor =
-                r.status === "POSTED"
-                  ? "bg-emerald-600/10 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300"
-                  : r.status === "FAILED"
-                  ? "bg-rose-600/10 text-rose-700 dark:bg-rose-400/10 dark:text-rose-300"
-                  : "bg-amber-500/10 text-amber-700 dark:bg-amber-400/10 dark:text-amber-300";
+        {/* Loading / Empty / List */}
+        {loading ? (
+          <div className="space-y-2">
+            <RowSkel />
+            <RowSkel />
+            <RowSkel />
+            <RowSkel />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 text-center opacity-80">
+            No transactions found for the selected filters.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((r: any) => {
+              const created = new Date(r.createdAt || r.date || Date.now());
+              const party = r.party ?? r.tenant ?? "—";
+              const property = r.property ?? r.propertyName ?? "—";
+              const amount = Number(r.amount ?? 0);
+              const method: PaymentMethod = (r.method as PaymentMethod) ?? "RAAST";
+              const status = String(r.status ?? "").toUpperCase();
 
               return (
                 <div
-                  key={r.id}
+                  key={r.id ?? created.toISOString()}
                   className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-medium">{title}</div>
-                      <div className="text-xs opacity-70">{when.toLocaleString()}</div>
+                      <div className="font-medium">{property}</div>
+                      <div className="text-xs opacity-70">{created.toLocaleString()}</div>
+                      <div className="text-xs opacity-70">Party: {party}</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">{formatPKR(amt)}</div>
-                      <div className="text-xs opacity-70">{r.method}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between">
-                    <div className={`text-[11px] px-2 py-1 rounded-md ${badgeColor}`}>
-                      {r.status}
-                    </div>
-                    <div className="text-[11px] opacity-70 font-mono truncate max-w-[50%]">
-                      {r.id}
+                      <div className="font-semibold">{formatPKR(amount)}</div>
+                      <div className="text-xs opacity-70">{method}</div>
+                      <StatusPill status={status} />
                     </div>
                   </div>
                 </div>
               );
             })}
-        </div>
+          </div>
+        )}
       </div>
     </MobileAppShell>
   );
+}
+
+function RowSkel() {
+  return <div className="h-16 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />;
+}
+
+function StatusPill({ status }: { status: string }) {
+  const base =
+    "inline-block mt-1 text-[11px] px-2 py-0.5 rounded-full border";
+  if (status === "POSTED")
+    return (
+      <span className={`${base} border-emerald-500/40 text-emerald-600 dark:text-emerald-400`}>
+        {status}
+      </span>
+    );
+  if (status === "PENDING")
+    return (
+      <span className={`${base} border-amber-500/40 text-amber-600 dark:text-amber-400`}>
+        {status}
+      </span>
+    );
+  if (status === "FAILED")
+    return (
+      <span className={`${base} border-rose-500/40 text-rose-600 dark:text-rose-400`}>
+        {status}
+      </span>
+    );
+  return <span className={`${base} border-white/20 opacity-70`}>{status || "—"}</span>;
 }
