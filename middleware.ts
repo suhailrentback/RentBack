@@ -1,37 +1,22 @@
 // middleware.ts
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const url = req.nextUrl.clone();
-  const path = url.pathname;
+  const url = req.nextUrl;
+  const role = req.cookies.get("rb-role")?.value;
 
-  // Protect app sections
-  const needsAuth = path.startsWith("/tenant") || path.startsWith("/landlord") || path.startsWith("/admin");
-  if (!needsAuth) return NextResponse.next();
+  const isApp = url.pathname.startsWith("/tenant") || url.pathname.startsWith("/landlord") || url.pathname.startsWith("/admin");
+  if (!isApp) return NextResponse.next();
 
-  const role = req.cookies.get("rb-role")?.value as 'TENANT'|'LANDLORD'|'ADMIN'|undefined;
   if (!role) {
-    const dest = new URL("/sign-in", req.url);
-    dest.searchParams.set("next", path);
-    return NextResponse.redirect(dest);
+    const signIn = new URL("/sign-in", req.url);
+    signIn.searchParams.set("next", url.pathname);
+    return NextResponse.redirect(signIn);
   }
-
-  // Optional: role-specific walls (tenant pages expect TENANT, etc.)
-  if (path.startsWith("/tenant") && role !== "TENANT") {
-    const dest = new URL("/sign-in", req.url);
-    dest.searchParams.set("next", path);
-    return NextResponse.redirect(dest);
-  }
-  if (path.startsWith("/landlord") && role !== "LANDLORD") {
-    const dest = new URL("/sign-in", req.url);
-    dest.searchParams.set("next", path);
-    return NextResponse.redirect(dest);
-  }
-  if (path.startsWith("/admin") && role !== "ADMIN") {
-    const dest = new URL("/sign-in", req.url);
-    dest.searchParams.set("next", path);
-    return NextResponse.redirect(dest);
-  }
+  // simple role path check
+  if (url.pathname.startsWith("/tenant") && role !== "TENANT") return NextResponse.redirect(new URL("/sign-in", req.url));
+  if (url.pathname.startsWith("/landlord") && role !== "LANDLORD") return NextResponse.redirect(new URL("/sign-in", req.url));
+  if (url.pathname.startsWith("/admin") && role !== "ADMIN") return NextResponse.redirect(new URL("/sign-in", req.url));
 
   return NextResponse.next();
 }
