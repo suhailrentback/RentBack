@@ -19,11 +19,9 @@ export default function LedgerPage(){
       <div className="max-w-md mx-auto px-4 py-4">
         <h1 className="text-2xl font-bold">Ledger</h1>
         <p className="text-sm opacity-70">Posted payments from tenants</p>
-
         <div className="mt-4">
-          <button onClick={download} className="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">Download CSV</button>
+          <button type="button" onClick={download} className="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">Download CSV</button>
         </div>
-
         <div className="mt-4 grid gap-2">
           {rows.map(r=>(
             <div key={r.id} className="rounded-xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
