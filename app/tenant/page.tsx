@@ -1,76 +1,66 @@
 "use client";
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { strings } from "@/lib/i18n";
-import { createDemoPayment, formatPKR, getTenantPayments, markPaymentSent, type DemoPayment, ensureSeed } from "@/lib/demo";
+import Link from "next/link";
 
-export default function TenantPayPage() {
-  const t = strings.en; // uses your current i18n; swap to lang state if you prefer
-  const [list, setList] = useState<DemoPayment[]>([]);
-  const [amount, setAmount] = useState<number>(65000);
-  const [prop, setProp] = useState("Shahbaz Residency A-2");
-  const [method, setMethod] = useState<"RAAST"|"CARD"|"WALLET">("RAAST");
+type Payment = {
+  id: string; createdAt: string; landlord: string; amountPKR: number;
+  method: string; status: string; ref: string;
+};
+
+export default function TenantHome() {
+  const [rows, setRows] = useState<Payment[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    ensureSeed();
-    setList(getTenantPayments());
+    fetch("/api/tenant/payments", { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => setRows(d.items ?? []))
+      .finally(()=> setLoading(false));
   }, []);
 
-  function refresh() { setList(getTenantPayments()); }
-
-  function create() {
-    if (!amount || !prop) return alert("Enter amount and property");
-    const id = createDemoPayment({ amount, property: prop, method });
-    refresh();
-    alert(`Demo payment created: ${id}`);
-  }
-
-  function mark(id:string){ markPaymentSent(id); refresh(); }
-
   return (
-    <MobileAppShell>
-      <div className="max-w-md mx-auto px-4 py-4">
-        <h1 className="text-2xl font-bold">Pay Rent</h1>
-        <p className="text-sm opacity-70">Demo Mode — no real charges</p>
+    <div className="max-w-md mx-auto p-4">
+      <h1 className="text-xl font-semibold mb-3">Tenant</h1>
 
-        <div className="mt-5 grid gap-3">
-          <input className="h-11 px-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
-                 type="number" value={amount} onChange={e=>setAmount(parseInt(e.target.value||"0"))} placeholder="Amount (PKR)"/>
-          <input className="h-11 px-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
-                 value={prop} onChange={e=>setProp(e.target.value)} placeholder="Landlord / Property"/>
-          <select className="h-11 px-3 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
-                  value={method} onChange={e=>setMethod(e.target.value as any)}>
-            <option value="RAAST">Raast</option>
-            <option value="CARD">Card</option>
-            <option value="WALLET">Wallet</option>
-          </select>
-          <button onClick={create} className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white">Create Payment (Demo)</button>
-        </div>
-
-        <h2 className="mt-8 mb-3 font-semibold">Recent</h2>
-        <div className="grid gap-2">
-          {list.map(p => (
-            <div key={p.id} className="rounded-xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{p.property}</div>
-                  <div className="text-xs opacity-70">{new Date(p.createdAt).toLocaleString()}</div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">{formatPKR(p.amount)}</div>
-                  <div className="text-xs opacity-70">{p.method} • {p.status}</div>
-                </div>
-              </div>
-              <div className="mt-3 flex gap-2">
-                <button onClick={()=>mark(p.id)} className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10">Mark as Sent</button>
-                <Link href={`/tenant/receipt/${p.id}`} className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">View Receipt</Link>
-              </div>
+      <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm opacity-70">Quick actions</div>
+            <div className="text-sm mt-1">
+              <Link href="/tenant/pay" className="text-emerald-600 dark:text-emerald-400 font-medium">Pay Rent →</Link>
             </div>
-          ))}
-          {list.length === 0 && <div className="text-sm opacity-70">No payments yet — create one above.</div>}
+          </div>
+          <Link
+            href="/tenant/rewards"
+            className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm"
+          >
+            Rewards
+          </Link>
         </div>
       </div>
-    </MobileAppShell>
+
+      <h2 className="text-sm font-medium opacity-80 mb-2">Recent Payments</h2>
+      {loading ? (
+        <p className="text-sm opacity-70">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="text-sm opacity-70">No payments yet.</p>
+      ) : (
+        <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+          {rows.map(r => (
+            <Link
+              href={`/tenant/receipt/${r.id}`}
+              key={r.id}
+              className="flex items-center justify-between px-4 py-3 border-b last:border-0 border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              <div>
+                <div className="text-sm font-medium">{r.landlord}</div>
+                <div className="text-xs opacity-70">{new Date(r.createdAt).toLocaleString()} • {r.method} • {r.status}</div>
+              </div>
+              <div className="text-sm font-semibold">₨ {r.amountPKR.toLocaleString("en-PK")}</div>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
