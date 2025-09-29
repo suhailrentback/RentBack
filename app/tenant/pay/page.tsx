@@ -53,7 +53,7 @@ const labels = {
   },
 } as const;
 
-// storage helpers
+// ----- storage helpers -----
 function loadPayments(): DemoPayment[] {
   try {
     const raw = localStorage.getItem("rb-payments");
@@ -84,7 +84,7 @@ type RewardEntry = {
   id: string;
   createdAt: string;
   type: "EARN" | "REDEEM";
-  points: number;        // positive for EARN, negative for REDEEM
+  points: number;
   note?: string;
 };
 function loadRewardEntries(): RewardEntry[] {
@@ -101,7 +101,9 @@ function saveRewardEntries(list: RewardEntry[]) {
   } catch {}
 }
 
+// ----- page -----
 export default function TenantPayPage() {
+  // detect current language from <html lang="">
   const [lang, setLang] = useState<Lang>("en");
   useEffect(() => {
     const htmlLang = document.documentElement.getAttribute("lang");
@@ -110,12 +112,12 @@ export default function TenantPayPage() {
   const t = useMemo(() => labels[lang], [lang]);
   const dir = lang === "ur" ? "rtl" : "ltr";
 
-  // form
+  // form state
   const [amount, setAmount] = useState("");
   const [landlord, setLandlord] = useState("");
   const [method, setMethod] = useState<Method>("RAAST");
 
-  // data
+  // data state
   const [payments, setPayments] = useState<DemoPayment[]>([]);
   const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
 
@@ -138,7 +140,7 @@ export default function TenantPayPage() {
       method,
       status: "PENDING",
     };
-    const next = [p, ...payments].slice(0, 50);
+    const next: DemoPayment[] = [p, ...payments].slice(0, 50);
     setPayments(next);
     savePayments(next);
     setJustCreatedId(id);
@@ -146,7 +148,10 @@ export default function TenantPayPage() {
   }
 
   function markSent(id: string) {
-    const next = payments.map((p) => (p.id === id ? { ...p, status: "SENT" } : p));
+    // ✅ Keep literal type "SENT" and return DemoPayment from map
+    const next: DemoPayment[] = payments.map((p): DemoPayment =>
+      p.id === id ? { ...p, status: "SENT" as const } : p
+    );
     setPayments(next);
     savePayments(next);
 
