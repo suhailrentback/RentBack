@@ -1,148 +1,46 @@
 "use client";
-
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { strings } from "@/lib/i18n";
-import { getLandlordLedger, csvForLedger, formatPKR } from "@/lib/demo";
+import { csvForLedger, formatPKR, getLandlordLedger } from "@/lib/demo";
 
-type Row = ReturnType<typeof getLandlordLedger>[number];
+export default function LedgerPage(){
+  const [rows, setRows] = useState<any[]>([]);
+  useEffect(()=>{ setRows(getLandlordLedger()); }, []);
 
-function RowSkel() {
-  return <div className="h-12 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />;
-}
-
-export default function LandlordLedgerPage() {
-  const [lang, setLang] = useState<"en" | "ur">("en");
-  const t = strings[lang];
-
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [q, setQ] = useState("");
-  const [range, setRange] = useState<"30" | "90" | "all">("30");
-
-  useEffect(() => {
-    try {
-      const l = localStorage.getItem("rb-lang");
-      if (l === "en" || l === "ur") setLang(l);
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const data = getLandlordLedger();
-    setRows(data);
-    setLoading(false);
-  }, []);
-
-  const filtered = useMemo(() => {
-    const now = Date.now();
-    const min =
-      range === "all"
-        ? 0
-        : range === "90"
-        ? now - 90 * 86400000
-        : now - 30 * 86400000;
-
-    return rows.filter((r) => {
-      const okDate = new Date(r.date).getTime() >= min;
-      const needle = q.trim().toLowerCase();
-      const okQ =
-        !needle ||
-        r.id.toLowerCase().includes(needle) ||
-        r.tenant.toLowerCase().includes(needle) ||
-        r.property.toLowerCase().includes(needle) || // FIX: propertyName → property
-        String(r.amount).includes(needle) ||
-        r.method.toLowerCase().includes(needle) ||
-        r.status.toLowerCase().includes(needle);
-      return okDate && okQ;
-    });
-  }, [rows, q, range]);
-
-  function downloadCSV() {
-    const csv = csvForLedger();
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const stamp = new Date().toISOString().slice(0, 10);
-    a.download = `rentback-landlord-ledger-${stamp}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+  function download(){
+    const csv = csvForLedger(rows);
+    const blob = new Blob([csv], { type:"text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a");
+    a.href = url; a.download = "ledger.csv"; a.click(); URL.revokeObjectURL(url);
   }
 
   return (
     <MobileAppShell>
-      <div className="max-w-md mx-auto px-4 pb-24">
-        <header className="pt-3 pb-4 flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Landlord · Ledger</h1>
-          <button
-            onClick={downloadCSV}
-            className="px-3 py-2 text-sm rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            Export CSV
-          </button>
-        </header>
+      <div className="max-w-md mx-auto px-4 py-4">
+        <h1 className="text-2xl font-bold">Ledger</h1>
+        <p className="text-sm opacity-70">Posted payments from tenants</p>
 
-        {/* Filters */}
-        <div className="mb-3 grid grid-cols-3 gap-2">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search (tenant, property, method)"
-            className="col-span-2 h-10 rounded-lg px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
-          />
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value as any)}
-            className="h-10 rounded-lg px-3 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
-          >
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="all">All</option>
-          </select>
+        <div className="mt-4">
+          <button onClick={download} className="h-10 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white">Download CSV</button>
         </div>
 
-        {/* List */}
-        <div className="space-y-2">
-          {loading ? (
-            <>
-              <RowSkel />
-              <RowSkel />
-              <RowSkel />
-            </>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-sm opacity-80">
-              No ledger entries match your filters.
-            </div>
-          ) : (
-            filtered.map((r) => (
-              <div
-                key={r.id}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-3 bg-white dark:bg-white/5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    {/* FIX: propertyName → property */}
-                    <div className="font-medium">{r.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(r.date).toLocaleString()} · {r.tenant}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{formatPKR(r.amount)}</div>
-                    <div className="text-xs opacity-70">
-                      {r.method} · {r.status}
-                    </div>
-                  </div>
+        <div className="mt-4 grid gap-2">
+          {rows.map(r=>(
+            <div key={r.id} className="rounded-xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{r.property}</div>
+                  <div className="text-xs opacity-70">{r.tenant} • {new Date(r.date).toLocaleString()}</div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{formatPKR(r.amount)}</div>
+                  <div className="text-xs opacity-70">{r.method} • {r.status}</div>
                 </div>
               </div>
-            ))
-          )}
+            </div>
+          ))}
+          {rows.length===0 && <div className="text-sm opacity-70">No entries.</div>}
         </div>
-
-        <div className="h-6" />
       </div>
     </MobileAppShell>
   );
