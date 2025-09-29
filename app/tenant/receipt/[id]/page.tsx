@@ -7,7 +7,7 @@ import MobileAppShell from "@/components/MobileAppShell";
 import { strings } from "@/lib/i18n";
 import { formatPKR, getPaymentById } from "@/lib/demo";
 
-// very loose type so we don't block builds if demo shape changes
+// loose types so demo shape changes don't break builds
 type PaymentMethod = "RAAST" | "CARD" | "WALLET" | "CASH" | string;
 type DemoPayment = {
   id: string;
@@ -23,11 +23,43 @@ type DemoPayment = {
   party?: string;
 };
 
+// local labels (receipts only) — avoids relying on t.pay.*
+const L = {
+  en: {
+    print: "Print / Save PDF",
+    receipt: "Receipt",
+    landlord: "Landlord / Property",
+    method: "Method",
+    transferTo: "Transfer To",
+    collections: "RentBack Collections",
+    memo: "Memo",
+    created: "Created",
+    ref: "Ref #",
+    status: "Status",
+    notFound: "Not found.",
+    demoNote: "Demo: Not a real payment. This receipt is for product preview only.",
+  },
+  ur: {
+    print: "پرنٹ / پی ڈی ایف",
+    receipt: "رسید",
+    landlord: "مالک / پراپرٹی",
+    method: "طریقہ",
+    transferTo: "بھیجنے کا اکاؤنٹ",
+    collections: "RentBack Collections",
+    memo: "میمو",
+    created: "تاریخ",
+    ref: "حوالہ #",
+    status: "اسٹیٹس",
+    notFound: "نہیں ملا۔",
+    demoNote: "ڈیمو: یہ حقیقی ادائیگی نہیں ہے۔ یہ رسید صرف پیش نظارہ کے لیے ہے۔",
+  },
+} as const;
+
 export default function ReceiptPage({ params }: { params: { id: string } }) {
   const [payment, setPayment] = useState<DemoPayment | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // read language for labels
+  // language (read from localStorage, fallback to env default)
   const lang: "en" | "ur" = useMemo(() => {
     if (typeof window !== "undefined") {
       const l = localStorage.getItem("rb-lang");
@@ -36,6 +68,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
     return (process.env.NEXT_PUBLIC_DEFAULT_LANG as any) === "ur" ? "ur" : "en";
   }, []);
   const t = strings[lang];
+  const lx = L[lang];
 
   useEffect(() => {
     try {
@@ -58,7 +91,6 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
             href="/tenant"
             className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
           >
-            {/* FIX: use bottom.home instead of nav.home */}
             ← {t.bottom.home}
           </Link>
 
@@ -66,7 +98,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
             onClick={() => window.print()}
             className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {t.pay.print}
+            {lx.print}
           </button>
         </div>
 
@@ -81,8 +113,8 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
 
         {!loading && !payment && (
           <div className="rounded-xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-            <div className="text-lg font-semibold mb-1">{t.pay.receipt}</div>
-            <div className="text-sm opacity-75 mb-4">Not found.</div>
+            <div className="text-lg font-semibold mb-1">{lx.receipt}</div>
+            <div className="text-sm opacity-75 mb-4">{lx.notFound}</div>
             <Link
               href="/tenant"
               className="inline-block text-sm px-4 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
@@ -111,18 +143,21 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
             </div>
 
             <div className="mt-1 text-sm opacity-75">
-              {labelFor(lang, "status")}: {labelStatus(payment.status)}
+              {lx.status}: {labelStatus(payment.status)}
             </div>
 
             <hr className="my-5 border-black/10 dark:border-white/10" />
 
             <dl className="grid grid-cols-1 gap-3 text-sm">
-              <Row label={t.pay.landlord} value={pickProperty(payment)} />
-              <Row label={t.pay.method} value={payment.method || "RAAST"} />
-              <Row label={t.pay.transferTo} value={payment.iban || t.pay.collections} />
-              <Row label="Ref #" value={payment.id} />
-              <Row label="Created" value={safeDate(payment.createdAt)} />
-              {payment.memo ? <Row label={t.pay.memo} value={payment.memo} /> : null}
+              <Row label={lx.landlord} value={pickProperty(payment)} />
+              <Row label={lx.method} value={payment.method || "RAAST"} />
+              <Row
+                label={lx.transferTo}
+                value={payment.iban || lx.collections}
+              />
+              <Row label={lx.ref} value={payment.id} />
+              <Row label={lx.created} value={safeDate(payment.createdAt)} />
+              {payment.memo ? <Row label={lx.memo} value={payment.memo} /> : null}
             </dl>
 
             {/* Fake Raast QR / verification */}
@@ -130,9 +165,7 @@ export default function ReceiptPage({ params }: { params: { id: string } }) {
               <div className="h-24 w-24 rounded bg-black/5 dark:bg-white/10 flex items-center justify-center text-[10px] opacity-70">
                 QR
               </div>
-              <p className="text-xs opacity-70 leading-relaxed">
-                Demo: Not a real payment. This receipt is for product preview only.
-              </p>
+              <p className="text-xs opacity-70 leading-relaxed">{lx.demoNote}</p>
             </div>
           </div>
         )}
@@ -184,7 +217,7 @@ function Logo({ size = 20, stroke = "#059669" }: { size?: number; stroke?: strin
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={size ? "none" : "none"}
       stroke={stroke}
       strokeWidth="1.8"
       strokeLinecap="round"
@@ -198,10 +231,6 @@ function Logo({ size = 20, stroke = "#059669" }: { size?: number; stroke?: strin
 }
 
 /* ---------- helpers ---------- */
-
-function labelFor(lang: "en" | "ur", key: keyof typeof strings["en"]["pay"]) {
-  return strings[lang].pay[key] as string;
-}
 
 function labelStatus(s?: string) {
   if (!s) return "Pending";
