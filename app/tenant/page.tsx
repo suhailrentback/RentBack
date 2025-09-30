@@ -2,293 +2,182 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname } from "next/navigation";
+import MobileAppShell from "@/components/MobileAppShell";
 
-// i18n — your existing strings file
-import { strings } from "@/lib/i18n";
+// ---------- Local demo helpers ----------
+const BAL_KEY = "rb-rewards-balance";
+const HIST_KEY = "rb-rewards-history";
+const PAY_KEY = "rb-tenant-payments";
 
-/**
- * Local storage keys we use across the demo.
- */
-const LS_KEYS = {
-  lang: "rb-lang",
-  theme: "rb-theme",
-  payments: "rb-payments",    // Demo payments array
-  rewards: "rb-rewards",      // { balance: number, entries: [...] }
-  profile: "rb-profile",      // { name, email } (optional)
-};
-
-/**
- * Small helpers
- */
-type Lang = "en" | "ur";
-type Theme = "light" | "dark";
-type Method = "RAAST" | "BANK_TRANSFER" | "JAZZCASH";
+type Method = "RAAST" | "BANK" | "JAZZCASH";
 type Status = "PENDING" | "SENT";
 
 type DemoPayment = {
   id: string;
   createdAt: string; // ISO
   property: string;
-  amount: number;
+  amount: number; // PKR
   method: Method;
   status: Status;
 };
 
-type RewardsStore = {
-  balance: number;
-  entries: Array<{
-    id: string;
-    type: "earn" | "redeem";
-    points: number;
-    createdAt: string;
-    note?: string;
-  }>;
+type Redemption = {
+  id: string;
+  createdAt: string;
+  brand: string;
+  amountPts: number; // +/- points
+  kind: "REDEEM" | "EARN";
+  meta?: { voucherCode?: string; denomination?: number; sourcePaymentId?: string };
 };
 
-function formatPKR(n: number) {
+function lsGetNumber(key: string, fallback = 0) {
   try {
-    return new Intl.NumberFormat("en-PK", {
-      style: "currency",
-      currency: "PKR",
-      maximumFractionDigits: 0,
-    }).format(n);
+    const raw = localStorage.getItem(key);
+    const n = raw != null ? Number(raw) : NaN;
+    return Number.isFinite(n) ? n : fallback;
   } catch {
-    return `PKR ${Math.round(n).toLocaleString()}`;
+    return fallback;
+  }
+}
+function lsSetNumber(key: string, val: number) {
+  try {
+    localStorage.setItem(key, String(val));
+  } catch {}
+}
+function lsGetJSON<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+function lsSetJSON(key: string, val: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch {}
+}
+function formatPKR(amount: number) {
+  try {
+    return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(
+      amount
+    );
+  } catch {
+    return `PKR ${amount.toLocaleString()}`;
   }
 }
 
-/**
- * Next rent due:
- * - If you’ve paid before: suggest the last amount and set due to the 1st of next month.
- * - If no payments yet: 65,000 due on the 1st of next month.
- */
-function getNextDue(payments: DemoPayment[]) {
-  const last = [...payments].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  const baseAmount = last?.amount ?? 65000;
-
-  const now = new Date();
-  const due = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
-  // Format date nicely (DD Mon, YYYY)
-  const dateLabel = due.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
-
-  return { amount: baseAmount, dateLabel };
+function ensureSeed() {
+  if (!localStorage.getItem(BAL_KEY)) lsSetNumber(BAL_KEY, 1350);
+  if (!localStorage.getItem(HIST_KEY)) {
+    const seed: Redemption[] = [
+      { id: crypto.randomUUID(), createdAt: new Date().toISOString(), brand: "Earnings", amountPts: +650, kind: "EARN", meta: { sourcePaymentId: "PAY-DEMO-3912" } },
+    ];
+    lsSetJSON(HIST_KEY, seed);
+  }
+  if (!localStorage.getItem(PAY_KEY)) {
+    const seed: DemoPayment[] = [
+      {
+        id: "PAY-DEMO-3912",
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
+        property: "Gulberg Heights, Lahore",
+        amount: 65000,
+        method: "RAAST",
+        status: "SENT",
+      },
+    ];
+    lsSetJSON(PAY_KEY, seed);
+  }
 }
 
-/**
- * Pull demo state from localStorage on the client.
- */
-function useDemoState() {
+export default function TenantHomePage() {
+  const [balance, setBalance] = useState<number>(0);
   const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [rewards, setRewards] = useState<RewardsStore | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const rawP = localStorage.getItem(LS_KEYS.payments);
-      const rawR = localStorage.getItem(LS_KEYS.rewards);
-      setPayments(rawP ? JSON.parse(rawP) : []);
-      setRewards(
-        rawR
-          ? JSON.parse(rawR)
-          : {
-              balance: 0,
-              entries: [],
-            }
-      );
-    } catch {
-      setPayments([]);
-      setRewards({ balance: 0, entries: [] });
-    }
+    ensureSeed();
+    setBalance(lsGetNumber(BAL_KEY, 0));
+    setPayments(lsGetJSON<DemoPayment[]>(PAY_KEY, []));
+    // tiny skeleton delay for nicer load feel
+    const t = setTimeout(() => setLoading(false), 300);
+    return () => clearTimeout(t);
   }, []);
 
   const lastPayment = useMemo(() => {
-    if (!payments?.length) return null;
-    const sorted = [...payments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return sorted[0];
+    return [...payments].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
   }, [payments]);
 
-  return { payments, rewards, lastPayment };
-}
-
-/**
- * Language/theme controls (persisted to <html> + localStorage)
- */
-function useLangTheme() {
-  const [lang, setLang] = useState<Lang>("en");
-  const [theme, setTheme] = useState<Theme>("light");
-
-  // hydrate
-  useEffect(() => {
-    try {
-      const l = localStorage.getItem(LS_KEYS.lang);
-      const t = localStorage.getItem(LS_KEYS.theme);
-      if (l === "en" || l === "ur") setLang(l);
-      if (t === "light" || t === "dark") setTheme(t);
-    } catch {}
+  // Simple “due” mock: next month’s same amount as last payment (or default)
+  const nextDueAmount = lastPayment?.amount ?? 65000;
+  const nextDueDate = useMemo(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1);
+    d.setDate(5); // 5th of next month (demo)
+    return d.toDateString();
   }, []);
 
-  // apply
-  useEffect(() => {
-    document.documentElement.setAttribute("lang", lang);
-    document.documentElement.setAttribute("dir", lang === "ur" ? "rtl" : "ltr");
-    if (theme === "dark") document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
-    try {
-      localStorage.setItem(LS_KEYS.lang, lang);
-      localStorage.setItem(LS_KEYS.theme, theme);
-    } catch {}
-  }, [lang, theme]);
-
-  return { lang, theme, setLang, setTheme };
-}
-
-/**
- * Simple cards
- */
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-2">
-      <span className="opacity-70 text-sm">{label}</span>
-      <span className="font-medium text-sm">{value}</span>
-    </div>
-  );
-}
-
-export default function TenantHome() {
-  const path = usePathname();
-  const { lang, setLang, theme, setTheme } = useLangTheme();
-  const t = strings[lang];
-  const dir = lang === "ur" ? "rtl" : "ltr";
-
-  const { payments, rewards, lastPayment } = useDemoState();
-  const { amount: dueAmount, dateLabel } = getNextDue(payments);
-  const recentReceiptHref = lastPayment ? `/tenant/receipt/${encodeURIComponent(lastPayment.id)}` : null;
-
-  return (
-    <div
-      className="min-h-dvh bg-white text-slate-900 dark:bg-[#0b0b0b] dark:text-white"
-      style={{ direction: dir }}
-    >
-      {/* Page header (kept light; global bottom nav is in MobileAppShell) */}
-      <header className="sticky top-0 z-20 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur">
-        <div className="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-300">
-            <Logo />
-            <span>{t.app}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setLang((p) => (p === "en" ? "ur" : "en"))}
-              className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-              aria-label="toggle language"
-            >
-              {lang === "en" ? "اردو" : "English"}
-            </button>
-            <button
-              onClick={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}
-              className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-              aria-label="toggle theme"
-            >
-              {theme === "dark" ? t.light : t.dark}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Content */}
-      <main className="mx-auto max-w-md p-4 space-y-4">
-        {/* Main card — Rent Due */}
-        <Card className="p-5 relative overflow-hidden">
-          <div className="absolute -inset-20 -z-10 opacity-20 dark:opacity-30 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-emerald-400 via-emerald-600 to-emerald-800" />
-          <h2 className="text-base font-semibold">{lang === "en" ? "Rent Due" : "کرایہ واجب الادا"}</h2>
-          <p className="mt-1 text-sm opacity-70">
-            {lang === "en" ? "Due" : "واجب الادا"}: <span className="font-medium opacity-90">{dateLabel}</span>
-          </p>
-          <div className="mt-4 text-3xl font-extrabold tracking-tight">
-            {formatPKR(dueAmount)}
-          </div>
-          <div className="mt-5">
+    <MobileAppShell>
+      <div className="p-4 space-y-5">
+        {/* Main card: Next rent due */}
+        <div className="relative overflow-hidden rounded-2xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 to-emerald-400" />
+          <div className="relative p-5 text-white">
+            <div className="text-xs/5 opacity-90">Next Rent Due</div>
+            <div className="mt-1 text-3xl font-extrabold tracking-tight">{formatPKR(nextDueAmount)}</div>
+            <div className="mt-1 text-xs/5 opacity-90">Due by {nextDueDate}</div>
             <Link
               href="/tenant/pay"
-              className="w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="inline-block mt-4 px-4 py-2 rounded-xl bg-white text-emerald-700 font-semibold hover:bg-white/90"
             >
-              {lang === "en" ? "Pay Now" : "ابھی ادائیگی کریں"}
+              Pay now
             </Link>
           </div>
-        </Card>
-
-        {/* Secondary — Rewards + Last Payment */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="p-4">
-            <div className="text-xs opacity-70">{lang === "en" ? "Rewards Balance" : "ریوارڈز بیلنس"}</div>
-            <div className="mt-1 text-xl font-bold">
-              {(rewards?.balance ?? 0).toLocaleString()} <span className="text-xs opacity-70">pts</span>
-            </div>
-            <Link
-              href="/tenant/rewards"
-              className="mt-3 inline-flex text-xs px-3 py-1 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              {lang === "en" ? "View rewards" : "ریوارڈز دیکھیں"}
-            </Link>
-          </Card>
-
-          <Card className="p-4">
-            <div className="text-xs opacity-70">{lang === "en" ? "Last Payment" : "آخری ادائیگی"}</div>
-            {lastPayment ? (
-              <>
-                <div className="mt-1 text-sm font-medium truncate">{lastPayment.property}</div>
-                <div className="text-xs opacity-70">
-                  {new Date(lastPayment.createdAt).toLocaleDateString()} • {formatPKR(lastPayment.amount)}
-                </div>
-                {recentReceiptHref && (
-                  <Link
-                    href={recentReceiptHref}
-                    className="mt-3 inline-flex text-xs px-3 py-1 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-                  >
-                    {lang === "en" ? "Receipt" : "رسید"}
-                  </Link>
-                )}
-              </>
-            ) : (
-              <div className="mt-1 text-sm opacity-70">
-                {lang === "en" ? "No payments yet." : "ابھی تک کوئی ادائیگی نہیں۔"}
-              </div>
-            )}
-          </Card>
         </div>
 
-        {/* Shortcuts */}
-        <section className="grid grid-cols-4 gap-3">
-          <Shortcut href="/tenant/pay" icon="💸" label={lang === "en" ? "Pay" : "ادائیگی"} />
-          <Shortcut href="/tenant/rewards" icon="🎁" label={lang === "en" ? "Rewards" : "انعامات"} />
-          {recentReceiptHref ? (
-            <Shortcut href={recentReceiptHref} icon="🧾" label={lang === "en" ? "Receipt" : "رسید"} />
-          ) : (
-            <Shortcut href="/tenant/rewards#recent" icon="🧾" label={lang === "en" ? "Receipts" : "رسائد"} />
-          )}
-          <Shortcut href="mailto:help@rentback.app" icon="🛟" label={lang === "en" ? "Support" : "مدد"} />
-        </section>
+        {/* Secondary cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link
+            href="/tenant/rewards"
+            className="rounded-2xl p-4 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 hover:shadow-sm transition"
+          >
+            <div className="text-xs opacity-70">Rewards</div>
+            <div className="mt-1 text-xl font-semibold">{loading ? "—" : `${balance.toLocaleString()} pts`}</div>
+            <div className="text-[11px] opacity-60 mt-1">Tap to redeem</div>
+          </Link>
 
-        {/* Helpful tip / demo banner */}
-        <p className="text-[11px] opacity-60 text-center">
-          {lang === "en"
-            ? "Demo preview — no real payments are processed."
-            : "ڈیمو پریویو — کوئی حقیقی ادائیگیاں پروسیس نہیں ہوتیں۔"}
-        </p>
-      </main>
-    </div>
+          <Link
+            href={lastPayment ? `/tenant/receipt/${lastPayment.id}` : "/tenant/pay"}
+            className="rounded-2xl p-4 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 hover:shadow-sm transition"
+          >
+            <div className="text-xs opacity-70">Last Payment</div>
+            {loading ? (
+              <div className="mt-1 h-5 rounded bg-black/5 dark:bg-white/10 animate-pulse" />
+            ) : lastPayment ? (
+              <>
+                <div className="mt-1 text-sm font-medium">{formatPKR(lastPayment.amount)}</div>
+                <div className="text-[11px] opacity-60">{new Date(lastPayment.createdAt).toLocaleString()}</div>
+              </>
+            ) : (
+              <div className="mt-1 text-sm opacity-70">No payments yet — make one</div>
+            )}
+          </Link>
+        </div>
+
+        {/* Shortcuts grid */}
+        <div>
+          <h2 className="text-sm font-semibold opacity-90">Shortcuts</h2>
+          <div className="mt-3 grid grid-cols-4 gap-3">
+            <Shortcut href="/tenant/pay" icon="💸" label="Pay Rent" />
+            <Shortcut href="/tenant/rewards" icon="🎁" label="Rewards" />
+            <Shortcut href={lastPayment ? `/tenant/receipt/${lastPayment.id}` : "/tenant/pay"} icon="🧾" label="Receipts" />
+            <Shortcut href="mailto:help@rentback.app" icon="🛟" label="Support" />
+          </div>
+        </div>
+      </div>
+    </MobileAppShell>
   );
 }
 
@@ -296,20 +185,10 @@ function Shortcut({ href, icon, label }: { href: string; icon: string; label: st
   return (
     <Link
       href={href}
-      className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 px-2 py-3 flex flex-col items-center justify-center text-xs"
+      className="rounded-2xl p-3 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 flex flex-col items-center justify-center hover:shadow-sm transition"
     >
-      <span className="text-lg leading-none">{icon}</span>
-      <span className="mt-1 truncate">{label}</span>
+      <span className="text-xl">{icon}</span>
+      <span className="mt-2 text-[11px]">{label}</span>
     </Link>
-  );
-}
-
-function Logo({ size = 20, stroke = "#059669" }: { size?: number; stroke?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M3 11.5L12 4l9 7.5" />
-      <path d="M5 10v9h14v-9" />
-    </svg>
   );
 }
