@@ -1,296 +1,315 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import MobileAppShell from "@/components/MobileAppShell";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
+// i18n — your existing strings file
+import { strings } from "@/lib/i18n";
+
+/**
+ * Local storage keys we use across the demo.
+ */
+const LS_KEYS = {
+  lang: "rb-lang",
+  theme: "rb-theme",
+  payments: "rb-payments",    // Demo payments array
+  rewards: "rb-rewards",      // { balance: number, entries: [...] }
+  profile: "rb-profile",      // { name, email } (optional)
+};
+
+/**
+ * Small helpers
+ */
 type Lang = "en" | "ur";
-type Method = "RAAST" | "CARD" | "WALLET";
+type Theme = "light" | "dark";
+type Method = "RAAST" | "BANK_TRANSFER" | "JAZZCASH";
+type Status = "PENDING" | "SENT";
 
 type DemoPayment = {
   id: string;
-  createdAt: string;
+  createdAt: string; // ISO
   property: string;
   amount: number;
   method: Method;
-  status: "PENDING" | "SENT";
+  status: Status;
 };
 
-const labels = {
-  en: {
-    title: "Pay Rent",
-    subtitle: "Demo mode — no real charges",
-    amount: "Amount (PKR)",
-    landlord: "Landlord / Property",
-    method: "Method",
-    methodRaast: "Raast (Bank Transfer)",
-    methodCard: "Card",
-    methodWallet: "Wallet",
-    submit: "Create Payment (Demo)",
-    invalid: "Enter amount and landlord name.",
-    recent: "Recent",
-    markSent: "Mark as Sent (+1% points)",
-    viewReceipt: "View Receipt",
-    created: "Payment created (demo)",
-    noneYet: "No recent payments yet.",
-  },
-  ur: {
-    title: "کرایہ ادا کریں",
-    subtitle: "ڈیمو — کوئی حقیقی چارج نہیں",
-    amount: "رقم (PKR)",
-    landlord: "مالک / پراپرٹی",
-    method: "طریقہ",
-    methodRaast: "راست (بینک ٹرانسفر)",
-    methodCard: "کارڈ",
-    methodWallet: "والیٹ",
-    submit: "ادائیگی بنائیں (ڈیمو)",
-    invalid: "رقم اور مالک/پراپرٹی لکھیں۔",
-    recent: "حالیہ",
-    markSent: "بھیجا ہوا نشان (+1% پوائنٹس)",
-    viewReceipt: "رسید دیکھیں",
-    created: "ادائیگی بن گئی (ڈیمو)",
-    noneYet: "ابھی تک کوئی ادائیگی نہیں۔",
-  },
-} as const;
-
-// storage helpers
-function loadPayments(): DemoPayment[] {
-  try {
-    const raw = localStorage.getItem("rb-payments");
-    return raw ? (JSON.parse(raw) as DemoPayment[]) : [];
-  } catch {
-    return [];
-  }
-}
-function savePayments(list: DemoPayment[]) {
-  try {
-    localStorage.setItem("rb-payments", JSON.stringify(list));
-  } catch {}
-}
-function loadPoints(): number {
-  try {
-    const raw = localStorage.getItem("rb-reward-balance");
-    return raw ? Number(raw) : 0;
-  } catch {
-    return 0;
-  }
-}
-function savePoints(v: number) {
-  try {
-    localStorage.setItem("rb-reward-balance", String(Math.max(0, Math.floor(v))));
-  } catch {}
-}
-type RewardEntry = {
-  id: string;
-  createdAt: string;
-  type: "EARN" | "REDEEM";
-  points: number; // positive for EARN, negative for REDEEM
-  note?: string;
+type RewardsStore = {
+  balance: number;
+  entries: Array<{
+    id: string;
+    type: "earn" | "redeem";
+    points: number;
+    createdAt: string;
+    note?: string;
+  }>;
 };
-function loadRewardEntries(): RewardEntry[] {
+
+function formatPKR(n: number) {
   try {
-    const raw = localStorage.getItem("rb-reward-entries");
-    return raw ? (JSON.parse(raw) as RewardEntry[]) : [];
+    return new Intl.NumberFormat("en-PK", {
+      style: "currency",
+      currency: "PKR",
+      maximumFractionDigits: 0,
+    }).format(n);
   } catch {
-    return [];
+    return `PKR ${Math.round(n).toLocaleString()}`;
   }
 }
-function saveRewardEntries(list: RewardEntry[]) {
-  try {
-    localStorage.setItem("rb-reward-entries", JSON.stringify(list));
-  } catch {}
+
+/**
+ * Next rent due:
+ * - If you’ve paid before: suggest the last amount and set due to the 1st of next month.
+ * - If no payments yet: 65,000 due on the 1st of next month.
+ */
+function getNextDue(payments: DemoPayment[]) {
+  const last = [...payments].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const baseAmount = last?.amount ?? 65000;
+
+  const now = new Date();
+  const due = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+  // Format date nicely (DD Mon, YYYY)
+  const dateLabel = due.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
+
+  return { amount: baseAmount, dateLabel };
 }
 
-export default function TenantPayPage() {
-  const [lang, setLang] = useState<Lang>("en");
+/**
+ * Pull demo state from localStorage on the client.
+ */
+function useDemoState() {
+  const [payments, setPayments] = useState<DemoPayment[]>([]);
+  const [rewards, setRewards] = useState<RewardsStore | null>(null);
+
   useEffect(() => {
-    const htmlLang = document.documentElement.getAttribute("lang");
-    setLang(htmlLang === "ur" ? "ur" : "en");
+    try {
+      const rawP = localStorage.getItem(LS_KEYS.payments);
+      const rawR = localStorage.getItem(LS_KEYS.rewards);
+      setPayments(rawP ? JSON.parse(rawP) : []);
+      setRewards(
+        rawR
+          ? JSON.parse(rawR)
+          : {
+              balance: 0,
+              entries: [],
+            }
+      );
+    } catch {
+      setPayments([]);
+      setRewards({ balance: 0, entries: [] });
+    }
   }, []);
-  const t = useMemo(() => labels[lang], [lang]);
+
+  const lastPayment = useMemo(() => {
+    if (!payments?.length) return null;
+    const sorted = [...payments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return sorted[0];
+  }, [payments]);
+
+  return { payments, rewards, lastPayment };
+}
+
+/**
+ * Language/theme controls (persisted to <html> + localStorage)
+ */
+function useLangTheme() {
+  const [lang, setLang] = useState<Lang>("en");
+  const [theme, setTheme] = useState<Theme>("light");
+
+  // hydrate
+  useEffect(() => {
+    try {
+      const l = localStorage.getItem(LS_KEYS.lang);
+      const t = localStorage.getItem(LS_KEYS.theme);
+      if (l === "en" || l === "ur") setLang(l);
+      if (t === "light" || t === "dark") setTheme(t);
+    } catch {}
+  }, []);
+
+  // apply
+  useEffect(() => {
+    document.documentElement.setAttribute("lang", lang);
+    document.documentElement.setAttribute("dir", lang === "ur" ? "rtl" : "ltr");
+    if (theme === "dark") document.documentElement.classList.add("dark");
+    else document.documentElement.classList.remove("dark");
+    try {
+      localStorage.setItem(LS_KEYS.lang, lang);
+      localStorage.setItem(LS_KEYS.theme, theme);
+    } catch {}
+  }, [lang, theme]);
+
+  return { lang, theme, setLang, setTheme };
+}
+
+/**
+ * Simple cards
+ */
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function StatRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="opacity-70 text-sm">{label}</span>
+      <span className="font-medium text-sm">{value}</span>
+    </div>
+  );
+}
+
+export default function TenantHome() {
+  const path = usePathname();
+  const { lang, setLang, theme, setTheme } = useLangTheme();
+  const t = strings[lang];
   const dir = lang === "ur" ? "rtl" : "ltr";
 
-  // form
-  const [amount, setAmount] = useState("");
-  const [landlord, setLandlord] = useState("");
-  const [method, setMethod] = useState<Method>("RAAST");
-
-  // data
-  const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [justCreatedId, setJustCreatedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPayments(loadPayments());
-  }, []);
-
-  function submitDemo() {
-    const val = Number((amount || "").replace(/[, ]/g, ""));
-    if (!landlord || isNaN(val) || val <= 0) {
-      alert(t.invalid);
-      return;
-    }
-    const id = String(Date.now());
-    const p: DemoPayment = {
-      id,
-      createdAt: new Date().toISOString(),
-      property: landlord.trim(),
-      amount: val,
-      method,
-      status: "PENDING",
-    };
-    const next: DemoPayment[] = [p, ...payments].slice(0, 50);
-    setPayments(next);
-    savePayments(next);
-    setJustCreatedId(id);
-    console.warn("[DEMO] Created payment", p);
-  }
-
-  function markSent(id: string) {
-    // ✅ Force the mapped result to be DemoPayment[] and keep the literal "SENT"
-    const next: DemoPayment[] = payments.map((p): DemoPayment =>
-      p.id === id ? { ...p, status: "SENT" as const } : p
-    );
-    setPayments(next);
-    savePayments(next);
-
-    // rewards: +1% on SENT
-    const paid = next.find((p) => p.id === id);
-    if (paid) {
-      const earn = Math.floor(paid.amount * 0.01);
-      const prev = loadPoints();
-      const newBal = prev + earn;
-      savePoints(newBal);
-
-      const ledger = loadRewardEntries();
-      ledger.unshift({
-        id: `earn-${id}`,
-        createdAt: new Date().toISOString(),
-        type: "EARN",
-        points: earn,
-        note: `1% back for payment ${id}`,
-      });
-      saveRewardEntries(ledger.slice(0, 200));
-      console.warn("[DEMO] Marked as sent & awarded points", { id, earn, newBal });
-    }
-  }
-
-  const justCreated = payments.find((p) => p.id === justCreatedId) || null;
+  const { payments, rewards, lastPayment } = useDemoState();
+  const { amount: dueAmount, dateLabel } = getNextDue(payments);
+  const recentReceiptHref = lastPayment ? `/tenant/receipt/${encodeURIComponent(lastPayment.id)}` : null;
 
   return (
-    <MobileAppShell>
-      <div className="p-4 space-y-4" style={{ direction: dir }}>
-        <h1 className="text-xl font-semibold">{t.title}</h1>
-        <p className="text-sm opacity-70">{t.subtitle}</p>
-
-        <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-3">
-          <div>
-            <label className="text-xs opacity-70">{t.amount}</label>
-            <input
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="65,000"
-              className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 outline-none"
-            />
+    <div
+      className="min-h-dvh bg-white text-slate-900 dark:bg-[#0b0b0b] dark:text-white"
+      style={{ direction: dir }}
+    >
+      {/* Page header (kept light; global bottom nav is in MobileAppShell) */}
+      <header className="sticky top-0 z-20 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur">
+        <div className="mx-auto max-w-md px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-300">
+            <Logo />
+            <span>{t.app}</span>
           </div>
-
-          <div>
-            <label className="text-xs opacity-70">{t.landlord}</label>
-            <input
-              value={landlord}
-              onChange={(e) => setLandlord(e.target.value)}
-              placeholder="Ali Estates — Clifton"
-              className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs opacity-70">{t.method}</label>
-            <div className="mt-1 grid grid-cols-3 gap-2">
-              {(["RAAST", "CARD", "WALLET"] as Method[]).map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMethod(m)}
-                  className={`px-3 py-2 rounded-lg border ${
-                    method === m
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "border-black/10 dark:border-white/10"
-                  }`}
-                >
-                  {m === "RAAST" ? t.methodRaast : m === "CARD" ? t.methodCard : t.methodWallet}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-2">
+          <div className="flex items-center gap-2">
             <button
-              onClick={submitDemo}
-              className="w-full px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+              onClick={() => setLang((p) => (p === "en" ? "ur" : "en"))}
+              className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+              aria-label="toggle language"
             >
-              {t.submit}
+              {lang === "en" ? "اردو" : "English"}
+            </button>
+            <button
+              onClick={() => setTheme((p) => (p === "dark" ? "light" : "dark"))}
+              className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+              aria-label="toggle theme"
+            >
+              {theme === "dark" ? t.light : t.dark}
             </button>
           </div>
         </div>
+      </header>
 
-        {justCreated && (
-          <div className="rounded-xl border border-emerald-600/30 bg-emerald-600/10 p-3">
-            <div className="text-sm">
-              ✅ {t.created}: <span className="font-mono">{justCreated.id}</span>
-            </div>
-            <div className="mt-2 flex gap-2">
-              {justCreated.status !== "SENT" && (
-                <button
-                  onClick={() => markSent(justCreated.id)}
-                  className="px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 text-sm"
-                >
-                  {t.markSent}
-                </button>
-              )}
-              <Link
-                href={`/tenant/receipt/${justCreated.id}`}
-                className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-              >
-                {t.viewReceipt}
-              </Link>
-            </div>
+      {/* Content */}
+      <main className="mx-auto max-w-md p-4 space-y-4">
+        {/* Main card — Rent Due */}
+        <Card className="p-5 relative overflow-hidden">
+          <div className="absolute -inset-20 -z-10 opacity-20 dark:opacity-30 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-emerald-400 via-emerald-600 to-emerald-800" />
+          <h2 className="text-base font-semibold">{lang === "en" ? "Rent Due" : "کرایہ واجب الادا"}</h2>
+          <p className="mt-1 text-sm opacity-70">
+            {lang === "en" ? "Due" : "واجب الادا"}: <span className="font-medium opacity-90">{dateLabel}</span>
+          </p>
+          <div className="mt-4 text-3xl font-extrabold tracking-tight">
+            {formatPKR(dueAmount)}
           </div>
-        )}
+          <div className="mt-5">
+            <Link
+              href="/tenant/pay"
+              className="w-full inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {lang === "en" ? "Pay Now" : "ابھی ادائیگی کریں"}
+            </Link>
+          </div>
+        </Card>
 
-        <section className="space-y-2">
-          <h2 className="text-sm font-medium opacity-80">{t.recent}</h2>
-          {payments.length === 0 ? (
-            <div className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-sm opacity-75">
-              {t.noneYet}
+        {/* Secondary — Rewards + Last Payment */}
+        <div className="grid grid-cols-2 gap-4">
+          <Card className="p-4">
+            <div className="text-xs opacity-70">{lang === "en" ? "Rewards Balance" : "ریوارڈز بیلنس"}</div>
+            <div className="mt-1 text-xl font-bold">
+              {(rewards?.balance ?? 0).toLocaleString()} <span className="text-xs opacity-70">pts</span>
             </div>
-          ) : (
-            payments.slice(0, 6).map((p) => {
-              const fmt = new Intl.NumberFormat(lang === "ur" ? "ur-PK" : "en-PK", {
-                style: "currency",
-                currency: "PKR",
-                maximumFractionDigits: 0,
-              });
-              return (
-                <div
-                  key={p.id}
-                  className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between bg-white dark:bg-white/5"
-                >
-                  <div>
-                    <div className="font-medium">{p.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(p.createdAt).toLocaleString()} • {p.method}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{fmt.format(p.amount)}</div>
-                    <div className="text-[11px] opacity-70">{p.status}</div>
-                  </div>
+            <Link
+              href="/tenant/rewards"
+              className="mt-3 inline-flex text-xs px-3 py-1 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              {lang === "en" ? "View rewards" : "ریوارڈز دیکھیں"}
+            </Link>
+          </Card>
+
+          <Card className="p-4">
+            <div className="text-xs opacity-70">{lang === "en" ? "Last Payment" : "آخری ادائیگی"}</div>
+            {lastPayment ? (
+              <>
+                <div className="mt-1 text-sm font-medium truncate">{lastPayment.property}</div>
+                <div className="text-xs opacity-70">
+                  {new Date(lastPayment.createdAt).toLocaleDateString()} • {formatPKR(lastPayment.amount)}
                 </div>
-              );
-            })
+                {recentReceiptHref && (
+                  <Link
+                    href={recentReceiptHref}
+                    className="mt-3 inline-flex text-xs px-3 py-1 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+                  >
+                    {lang === "en" ? "Receipt" : "رسید"}
+                  </Link>
+                )}
+              </>
+            ) : (
+              <div className="mt-1 text-sm opacity-70">
+                {lang === "en" ? "No payments yet." : "ابھی تک کوئی ادائیگی نہیں۔"}
+              </div>
+            )}
+          </Card>
+        </div>
+
+        {/* Shortcuts */}
+        <section className="grid grid-cols-4 gap-3">
+          <Shortcut href="/tenant/pay" icon="💸" label={lang === "en" ? "Pay" : "ادائیگی"} />
+          <Shortcut href="/tenant/rewards" icon="🎁" label={lang === "en" ? "Rewards" : "انعامات"} />
+          {recentReceiptHref ? (
+            <Shortcut href={recentReceiptHref} icon="🧾" label={lang === "en" ? "Receipt" : "رسید"} />
+          ) : (
+            <Shortcut href="/tenant/rewards#recent" icon="🧾" label={lang === "en" ? "Receipts" : "رسائد"} />
           )}
+          <Shortcut href="mailto:help@rentback.app" icon="🛟" label={lang === "en" ? "Support" : "مدد"} />
         </section>
-      </div>
-    </MobileAppShell>
+
+        {/* Helpful tip / demo banner */}
+        <p className="text-[11px] opacity-60 text-center">
+          {lang === "en"
+            ? "Demo preview — no real payments are processed."
+            : "ڈیمو پریویو — کوئی حقیقی ادائیگیاں پروسیس نہیں ہوتیں۔"}
+        </p>
+      </main>
+    </div>
+  );
+}
+
+function Shortcut({ href, icon, label }: { href: string; icon: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 px-2 py-3 flex flex-col items-center justify-center text-xs"
+    >
+      <span className="text-lg leading-none">{icon}</span>
+      <span className="mt-1 truncate">{label}</span>
+    </Link>
+  );
+}
+
+function Logo({ size = 20, stroke = "#059669" }: { size?: number; stroke?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 11.5L12 4l9 7.5" />
+      <path d="M5 10v9h14v-9" />
+    </svg>
   );
 }
