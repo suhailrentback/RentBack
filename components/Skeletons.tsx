@@ -1,31 +1,27 @@
-"use client";
+// components/Skeletons.tsx
+import React from "react";
 
-export function RowSkel() {
-  return <div className="h-10 rounded-lg bg-black/5 dark:bg-white/10 animate-pulse" />;
-}
-
-export function CardSkel({ lines = 3 }: { lines?: number }) {
+export function CardSkeleton() {
   return (
-    <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
-      <div className="h-4 w-1/3 bg-black/5 dark:bg-white/10 rounded mb-3 animate-pulse" />
-      {Array.from({ length: lines }).map((_, i) => (
-        <div
-          key={i}
-          className="h-3 w-full bg-black/5 dark:bg-white/10 rounded mb-2 animate-pulse"
-        />
-      ))}
+    <div className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+      <div className="h-5 w-32 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+      <div className="mt-3 h-10 w-full rounded bg-black/10 dark:bg-white/10 animate-pulse" />
     </div>
   );
 }
 
-export function TableSkel({ rows = 6 }: { rows?: number }) {
+export function RowSkeleton() {
   return (
-    <div className="space-y-2">
+    <div className="h-10 w-full rounded-lg bg-black/10 dark:bg-white/10 animate-pulse" />
+  );
+}
+
+/** A vertical list of skeleton rows (default 6) */
+export function ListSkeleton({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="h-10 rounded-lg bg-black/5 dark:bg-white/10 animate-pulse"
-        />
+        <RowSkeleton key={i} />
       ))}
     </div>
   );
