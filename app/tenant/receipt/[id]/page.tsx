@@ -1,244 +1,237 @@
+// app/tenant/receipt/[id]/page.tsx
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import MobileAppShell from "@/components/MobileAppShell";
-import { strings } from "@/lib/i18n";
+import { strings, dirFor, type Lang } from "@/lib/i18n";
+import { formatPKR } from "@/lib/demo"; // simple formatter; safe to import client-side
 
 type Method = "RAAST" | "BANK" | "JAZZCASH";
 type Status = "PENDING" | "SENT";
+
 type DemoPayment = {
   id: string;
-  createdAt: string; // ISO
+  createdAt: string;
   property: string;
-  amount: number; // PKR
+  amount: number;
   method: Method;
   status: Status;
 };
 
-const PAY_KEY = "rb-tenant-payments";
-
-// ---- helpers ----
-type Lang = "en" | "ur";
-function formatPKR(amount: number) {
+function getLang(): Lang {
   try {
-    return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", maximumFractionDigits: 0 }).format(amount);
-  } catch {
-    return `PKR ${amount.toLocaleString()}`;
-  }
-}
-function lsGetJSON<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return fallback;
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-function langFromHtml(): Lang {
-  if (typeof document === "undefined") return "en";
-  const l = document.documentElement.getAttribute("lang");
-  return l === "ur" ? "ur" : "en";
+    const l = localStorage.getItem("rb-lang");
+    if (l === "ur" || l === "en") return l;
+  } catch {}
+  return (process.env.NEXT_PUBLIC_DEFAULT_LANG as Lang) || "en";
 }
 
-// Simple fake Raast reference derived from payment id and date
-function raastFor(p: DemoPayment) {
-  const d = new Date(p.createdAt);
-  const yyyy = d.getFullYear().toString().slice(-2);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const tail = p.id.slice(-4).replace(/\D/g, "").padStart(4, "0");
-  return `PK${yyyy}${mm}${dd}-RB-${tail}`;
+function fakeRaastRef(id: string) {
+  return `RB-${id.slice(0, 4).toUpperCase()}-${id.slice(-4).toUpperCase()}`;
 }
 
-// Tiny CSS “QR”: 21×21 pseudo grid with a deterministic pattern from the id.
-function QR({ seed }: { seed: string }) {
-  const bits: number[] = [];
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  for (let i = 0; i < 21 * 21; i++) {
-    h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
-    bits.push(h & 1);
-  }
-  return (
-    <div className="grid grid-cols-[repeat(21,6px)] grid-rows-[repeat(21,6px)] gap-[2px] p-2 rounded-lg bg-white border border-black/10">
-      {bits.map((b, i) => (
-        <div key={i} className={b ? "bg-black" : "bg-white"} />
-      ))}
-    </div>
-  );
-}
-
-export default function ReceiptPage({ params }: { params: { id: string } }) {
-  const [lang, setLang] = useState<Lang>("en");
-  const t = strings[lang].receipt;
+function usePaymentById(id: string | undefined) {
   const [payment, setPayment] = useState<DemoPayment | null>(null);
-  const [missing, setMissing] = useState(false);
 
   useEffect(() => {
-    setLang(langFromHtml());
-    const all = lsGetJSON<DemoPayment[]>(PAY_KEY, []);
-    const hit = all.find((p) => p.id === params.id) || null;
-    setPayment(hit);
-    setMissing(!hit);
-  }, [params.id]);
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem("rb-payments");
+      const arr: DemoPayment[] = raw ? JSON.parse(raw) : [];
+      const found = arr.find((p) => p.id === id) || null;
+      setPayment(found);
+    } catch {
+      setPayment(null);
+    }
+  }, [id]);
 
-  const ref = useMemo(() => (payment ? raastFor(payment) : "—"), [payment]);
+  return payment;
+}
 
-  // demo tenant identity (from cookie-less stub)
-  const demoTenant = { name: "Mr Renter", email: "tenant@demo.pk" };
+export default function TenantReceiptPage() {
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
+  const lang = getLang();
+  const t = strings[lang];
+  const dir = dirFor(lang);
+  const payment = usePaymentById(id);
 
-  if (missing) {
-    return (
-      <MobileAppShell>
-        <div className="p-4">
-          <div className="rounded-2xl p-6 border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-center">
-            <div className="text-5xl mb-2">🧾</div>
-            <div className="font-semibold">{t.notFoundTitle}</div>
-            <p className="text-sm opacity-70 mt-1">{t.notFoundBody}</p>
-            <div className="mt-4 flex gap-2 justify-center">
-              <Link href="/tenant/pay" className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
-                Pay
-              </Link>
-              <Link href="/tenant" className="px-4 py-2 rounded-lg border border-black/10 dark:border-white/10 text-sm hover:bg-black/5 dark:hover:bg-white/10">
-                {t.backHome}
-              </Link>
-            </div>
-          </div>
-        </div>
-      </MobileAppShell>
-    );
-  }
-
-  if (!payment) return null;
+  const createdAt = useMemo(() => {
+    if (!payment) return new Date().toISOString();
+    return payment.createdAt || new Date().toISOString();
+  }, [payment]);
 
   return (
     <MobileAppShell>
-      {/* Print styles (A4) */}
-      <style jsx global>{`
-        @media print {
-          @page { size: A4; margin: 16mm; }
-          body { background: #fff !important; }
-          nav, button#print-hide, a#print-hide { display: none !important; }
-          .print-card { box-shadow: none !important; border-color: #000 !important; }
-        }
-      `}</style>
-
-      <div className="p-4 space-y-4">
-        {/* Top controls (hidden in print) */}
-        <div className="flex items-center justify-between" id="print-hide">
-          <Link
-            href="/tenant"
-            className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            {t.backHome}
-          </Link>
-          <button
-            onClick={() => window.print()}
-            className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            {t.print}
-          </button>
-        </div>
-
-        {/* Branded header */}
-        <div className="rounded-2xl overflow-hidden print-card border border-black/10 dark:border-white/10 bg-white dark:bg-white/5">
-          <div className="p-5 border-b border-black/10 dark:border-white/10 bg-gradient-to-br from-emerald-600 to-emerald-500 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 font-semibold">
-                <Logo /> <span>RentBack</span>
+      <div className="p-4" style={{ direction: dir }}>
+        {/* Branded Header */}
+        <div className="max-w-md mx-auto">
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 overflow-hidden print:border-0 print:shadow-none">
+            <div className="px-4 py-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between print:hidden">
+              <div className="flex items-center gap-2">
+                <Logo />
+                <div className="font-semibold">RentBack</div>
               </div>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-white/20">{t.demo}</span>
-            </div>
-            <div className="mt-3 text-2xl font-extrabold">{t.title}</div>
-          </div>
-
-          {/* Details grid */}
-          <div className="p-5 grid md:grid-cols-3 gap-5">
-            {/* Left: who */}
-            <div className="rounded-xl p-4 border border-black/10 dark:border-white/10">
-              <div className="text-xs opacity-70">{t.details.tenant}</div>
-              <div className="mt-1 font-semibold">{demoTenant.name}</div>
-              <div className="text-sm opacity-80">{t.details.email}: {demoTenant.email}</div>
-            </div>
-
-            {/* Middle: payment core */}
-            <div className="rounded-xl p-4 border border-black/10 dark:border-white/10">
-              <Row label={t.details.property} value={payment.property} />
-              <Row label={t.details.amount} value={formatPKR(payment.amount)} />
-              <Row label={t.details.method} value={payment.method} />
-              <Row label={t.details.date} value={new Date(payment.createdAt).toLocaleString()} />
-              <Row
-                label={t.details.status}
-                value={
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      payment.status === "SENT"
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
-                        : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
-                    }`}
-                  >
-                    {payment.status === "SENT" ? t.sent : t.pending}
-                  </span>
-                }
-              />
-              <Row label={t.details.raast} value={ref} mono />
-            </div>
-
-            {/* Right: QR */}
-            <div className="rounded-xl p-4 border border-black/10 dark:border-white/10 flex items-center justify-center">
-              <div className="text-center">
-                <QR seed={payment.id} />
-                <div className="mt-2 text-xs opacity-70">{t.qrLabel}</div>
+              <div className="text-xs px-2 py-1 rounded-full bg-amber-500 text-white">
+                {t.receipt.demo}
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Bottom actions */}
-        <div className="flex items-center justify-between" id="print-hide">
-          <Link
-            href="/tenant/rewards"
-            className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-          >
-            {t.rewardsLinkLabel}
-          </Link>
-          <Link
-            href="/tenant/pay"
-            className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-          >
-            {t.makeAnotherPayment}
-          </Link>
+            {/* Content */}
+            <div className="p-4 md:p-6">
+              {!payment ? (
+                <NotFound lang={lang} />
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h1 className="text-xl font-semibold">{t.receipt.title}</h1>
+                      <p className="text-xs opacity-70">
+                        {new Date(createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => window.print()}
+                      className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white print:hidden"
+                    >
+                      {t.receipt.print}
+                    </button>
+                  </div>
+
+                  {/* Details grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field
+                      label={t.receipt.details.tenant}
+                      value={getDemoUserName() || "Demo Tenant"}
+                    />
+                    <Field
+                      label={t.receipt.details.email}
+                      value={getDemoUserEmail() || "tenant@rentback.app"}
+                    />
+                    <Field label={t.receipt.details.property} value={payment.property} />
+                    <Field label={t.receipt.details.amount} value={formatPKR(payment.amount)} />
+                    <Field label={t.receipt.details.method} value={payment.method} />
+                    <Field
+                      label={t.receipt.details.date}
+                      value={new Date(createdAt).toLocaleString()}
+                    />
+                    <Field
+                      label={t.receipt.details.status}
+                      value={payment.status === "SENT" ? t.receipt.sent : t.receipt.pending}
+                    />
+                    <Field label={t.receipt.details.raast} value={fakeRaastRef(payment.id)} />
+                  </div>
+
+                  {/* QR mock */}
+                  <div>
+                    <div className="text-sm font-medium mb-2">{t.receipt.qrLabel}</div>
+                    <div className="w-40 h-40 rounded-lg border border-black/10 dark:border-white/10 bg-[repeating-linear-gradient(45deg,#10b981_0_6px,#ffffff10_6px_12px)]" />
+                  </div>
+
+                  {/* Footer actions */}
+                  <div className="flex items-center justify-between gap-3 print:hidden">
+                    <Link
+                      href="/tenant"
+                      className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+                    >
+                      {t.receipt.backHome}
+                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        href="/tenant/pay"
+                        className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+                      >
+                        {t.receipt.makeAnotherPayment}
+                      </Link>
+                      <Link
+                        href="/tenant/rewards"
+                        className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        {t.receipt.rewardsLinkLabel}
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Print watermark */}
+                  <div className="hidden print:block text-center text-xs opacity-70 pt-6">
+                    {t.receipt.demo}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </MobileAppShell>
   );
 }
 
-function Row({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: React.ReactNode;
-  mono?: boolean;
-}) {
+function Field({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 py-1.5">
-      <div className="text-xs opacity-70">{label}</div>
-      <div className={`text-sm text-right ${mono ? "font-mono" : ""}`}>{value}</div>
+    <div className="rounded-xl border border-black/10 dark:border-white/10 p-3 bg-white dark:bg-white/5">
+      <div className="text-[11px] uppercase tracking-wider opacity-60">{label}</div>
+      <div className="mt-0.5 font-medium">{value}</div>
     </div>
   );
 }
 
-function Logo({ size = 20, stroke = "#fff" }: { size?: number; stroke?: string }) {
+function NotFound({ lang }: { lang: Lang }) {
+  const t = strings[lang];
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <div className="text-center py-10">
+      <h2 className="text-lg font-semibold">{t.receipt.notFoundTitle}</h2>
+      <p className="text-sm opacity-70 mt-2">{t.receipt.notFoundBody}</p>
+      <div className="mt-6 flex items-center justify-center gap-2">
+        <Link
+          href="/tenant"
+          className="text-sm px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+        >
+          {t.receipt.backHome}
+        </Link>
+        <Link
+          href="/tenant/pay"
+          className="text-sm px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+        >
+          {t.receipt.makeAnotherPayment}
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function Logo({ size = 22, stroke = "#059669" }: { size?: number; stroke?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d="M3 11.5L12 4l9 7.5" />
       <path d="M5 10v9h14v-9" />
     </svg>
   );
+}
+
+/** Demo helpers — read from localStorage set by /tenant/pay */
+function getDemoUserName(): string | null {
+  try {
+    return localStorage.getItem("rb-user-name");
+  } catch {
+    return null;
+  }
+}
+function getDemoUserEmail(): string | null {
+  try {
+    return localStorage.getItem("rb-user-email");
+  } catch {
+    return null;
+  }
 }
