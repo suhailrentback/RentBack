@@ -134,3 +134,47 @@ export function csvForAdmin(rows: AdminTx[]) {
   const body = rows.map(r => [r.id, r.createdAt, r.party, String(Math.round(r.amount)), r.method, r.status].join(",")).join("\n");
   return head + "\n" + body;
 }
+/* ---------- CSV helpers for payouts & discrepancies ---------- */
+
+export function csvForPayouts(rows: any[]) {
+  const headers = ["week", "total_amount_pkr", "count"];
+  const lines = [
+    headers.join(","),
+    ...rows.map(r => {
+      const week = r.week ?? r.label ?? "";
+      const total = Number(r.total ?? r.totalAmount ?? 0);
+      const count = Number(r.count ?? r.payments ?? r.items ?? 0);
+      return [safe(week), num(total), num(count)].join(",");
+    })
+  ];
+  return lines.join("\n");
+}
+
+export function csvForDiscrepancies(rows: any[]) {
+  const headers = ["property", "tenant", "expected_pkr", "paid_pkr", "delta_pkr", "status"];
+  const lines = [
+    headers.join(","),
+    ...rows.map(r => {
+      const property = r.property ?? r.propertyName ?? "";
+      const tenant = r.tenant ?? r.tenantName ?? "";
+      const expected = Number(r.expected ?? r.expectedAmount ?? 0);
+      const paid = Number(r.paid ?? r.paidAmount ?? 0);
+      const delta = paid - expected;
+      const status = delta < 0 ? "UNDER" : delta > 0 ? "OVER" : "OK";
+      return [safe(property), safe(tenant), num(expected), num(paid), num(delta), safe(status)].join(",");
+    })
+  ];
+  return lines.join("\n");
+}
+
+// small utils
+function safe(v: any) {
+  const s = String(v ?? "");
+  // escape inner quotes
+  const esc = s.replace(/"/g, '""');
+  // wrap if needed
+  return /[",\n]/.test(esc) ? `"${esc}"` : esc;
+}
+function num(n: number) {
+  return isFinite(n) ? String(n) : "0";
+}
