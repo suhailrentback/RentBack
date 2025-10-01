@@ -100,7 +100,7 @@ export default function TenantPayPage() {
       const prev = loadRewards();
       const activityItem = {
         id: `rw_${createdId}`,
-        type: "EARNED" as const,
+        type: "EARN" as const, // ✨ THE FIX WAS HERE
         points: credited,
         createdAt: new Date().toISOString(),
       };
