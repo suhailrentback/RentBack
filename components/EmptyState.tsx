@@ -1,33 +1,77 @@
-"use client";
+// components/EmptyState.tsx
+'use client';
 
-import Link from "next/link";
+import React from 'react';
+import Link from 'next/link';
 
 type Props = {
   title: string;
-  subtitle?: string;
-  ctaHref?: string;
+  /**
+   * Preferred prop (new).
+   */
+  description?: React.ReactNode;
+  /**
+   * Backwards-compat alias for older pages that pass "body".
+   * If provided, it will be used instead of "description".
+   */
+  body?: React.ReactNode;
   ctaLabel?: string;
+  ctaHref?: string;
+  /**
+   * Optional icon (emoji or small SVG/JSX).
+   */
+  icon?: React.ReactNode;
+  /**
+   * When true, renders a subtle border and background.
+   */
+  framed?: boolean;
 };
 
-export default function EmptyState({ title, subtitle, ctaHref, ctaLabel }: Props) {
-  return (
-    <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 bg-white dark:bg-white/5 text-center">
-      <div className="mx-auto mb-3 h-10 w-10 rounded-xl bg-emerald-600/10 dark:bg-emerald-400/10 flex items-center justify-center">
-        <span className="text-emerald-700 dark:text-emerald-300">◎</span>
-      </div>
-      <h3 className="font-semibold">{title}</h3>
-      {subtitle ? <p className="text-sm opacity-80 mt-1">{subtitle}</p> : null}
+export default function EmptyState({
+  title,
+  description,
+  body,
+  ctaLabel,
+  ctaHref,
+  icon,
+  framed = true,
+}: Props) {
+  const text = body ?? description;
 
-      {ctaHref && ctaLabel ? (
-        <div className="mt-4">
-          <Link
-            href={ctaHref}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium"
-          >
-            {ctaLabel}
-          </Link>
-        </div>
-      ) : null}
+  return (
+    <div
+      className={[
+        'w-full rounded-2xl',
+        framed
+          ? 'border border-black/10 dark:border-white/10 bg-white/40 dark:bg-white/5'
+          : '',
+        'p-6 text-center',
+      ].join(' ')}
+    >
+      <div className="flex flex-col items-center justify-center gap-3">
+        {icon ? (
+          <div className="text-3xl leading-none">{icon}</div>
+        ) : (
+          <div className="h-10 w-10 rounded-full bg-black/5 dark:bg-white/10" />
+        )}
+
+        <h3 className="text-base font-semibold">{title}</h3>
+
+        {text ? (
+          <p className="max-w-sm text-sm opacity-70">{text}</p>
+        ) : null}
+
+        {ctaLabel && ctaHref ? (
+          <div className="pt-1">
+            <Link
+              href={ctaHref}
+              className="inline-flex items-center gap-2 rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              {ctaLabel}
+            </Link>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
