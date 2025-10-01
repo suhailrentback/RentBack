@@ -28,8 +28,9 @@ export const strings = {
       title: "Payment Receipt",
       demo: "Demo: Not a real payment",
       print: "Print / Save",
-      sent: "Sent", // ✨ FIX
-      pending: "Pending", // ✨ FIX
+      sent: "Sent",
+      pending: "Pending",
+      qrLabel: "Scan to verify (demo)", // ✨ THE FIX
       details: {
         tenant: "Tenant",
         email: "Email",
@@ -38,8 +39,8 @@ export const strings = {
         method: "Method",
         date: "Date",
         raastRef: "Raast reference",
-        status: "Status", // ✨ FIX
-        raast: "Raast Reference", // ✨ FIX
+        status: "Status",
+        raast: "Raast Reference",
       },
     },
     tenant: {
@@ -81,8 +82,9 @@ export const strings = {
         title: "Payment Receipt",
         demo: "Demo: Not a real payment",
         print: "Print / Save",
-        sent: "Sent", // ✨ FIX
-        pending: "Pending", // ✨ FIX
+        sent: "Sent",
+        pending: "Pending",
+        qrLabel: "Scan to verify (demo)", // ✨ THE FIX
         details: {
             tenant: "Tenant",
             email: "Email",
@@ -91,8 +93,8 @@ export const strings = {
             method: "Method",
             date: "Date",
             raastRef: "Raast reference",
-            status: "Status", // ✨ FIX
-            raast: "Raast Reference", // ✨ FIX
+            status: "Status",
+            raast: "Raast Reference",
         },
       },
       rewards: {
@@ -158,8 +160,9 @@ export const strings = {
       title: "ادائیگی کی رسید",
       demo: "ڈیمو: حقیقی ادائیگی نہیں",
       print: "پرنٹ / محفوظ کریں",
-      sent: "بھیجا گیا", // ✨ FIX
-      pending: "زیر التواء", // ✨ FIX
+      sent: "بھیجا گیا",
+      pending: "زیر التواء",
+      qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)", // ✨ THE FIX
       details: {
         tenant: "کرایہ دار",
         email: "ای میل",
@@ -168,8 +171,8 @@ export const strings = {
         method: "طریقہ",
         date: "تاریخ",
         raastRef: "راست حوالہ",
-        status: "حیثیت", // ✨ FIX
-        raast: "راست حوالہ", // ✨ FIX
+        status: "حیثیت",
+        raast: "راست حوالہ",
       },
     },
     tenant: {
@@ -211,8 +214,9 @@ export const strings = {
         title: "ادائیگی کی رسید",
         demo: "ڈیمو: حقیقی ادائیگی نہیں",
         print: "پرنٹ / محفوظ کریں",
-        sent: "بھیجا گیا", // ✨ FIX
-        pending: "زیر التواء", // ✨ FIX
+        sent: "بھیجا گیا",
+        pending: "زیر التواء",
+        qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)", // ✨ THE FIX
         details: {
             tenant: "کرایہ دار",
             email: "ای میل",
@@ -221,8 +225,8 @@ export const strings = {
             method: "طریقہ",
             date: "تاریخ",
             raastRef: "راست حوالہ",
-            status: "حیثیت", // ✨ FIX
-            raast: "راست حوالہ", // ✨ FIX
+            status: "حیثیت",
+            raast: "راست حوالہ",
         },
       },
       rewards: {
