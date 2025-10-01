@@ -1,5 +1,5 @@
 // lib/i18n.ts
-// Complete EN/UR strings used across Tenant/Landlord/Admin + helpers.
+// Complete EN/UR strings for Tenant/Landlord/Admin + helpers.
 // Safe drop-in replacement.
 
 export type Lang = "en" | "ur";
@@ -36,7 +36,7 @@ export const strings = {
     needHelp: "Need help?",
     support: "Support",
 
-    // Kept for older references
+    // legacy/compat
     nav: { home: "Home" },
 
     // Bottom nav
@@ -117,16 +117,17 @@ export const strings = {
         // KPI labels
         rentCollected: "Rent collected (30 days)",
         pendingCount: "Payments pending confirmation",
-        // Card titles (buttons)
+        // Card titles
         payoutsCard: "Payouts",
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
-        // NEW nested block used by page.tsx
+        // Nested block used in page.tsx
         payouts: {
           title: "Payouts",
           next: "Next settlement",
           day: "Friday",
+          none: "No settlements yet", // ← NEW key that was missing
         },
       },
       ledger: {
@@ -271,6 +272,7 @@ export const strings = {
           title: "ادائیگیاں",
           next: "اگلی سیٹلمنٹ",
           day: "جمعہ",
+          none: "ابھی کوئی سیٹلمنٹ نہیں", // ← Urdu for “No settlements yet”
         },
       },
       ledger: {
