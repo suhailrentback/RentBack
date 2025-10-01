@@ -1,34 +1,8 @@
 // lib/i18n.ts
-// Complete EN/UR strings for Tenant/Landlord/Admin + helpers.
-// Safe drop-in replacement.
+// Simple i18n bundle used by the demo. No JSX here—pure TypeScript only.
 
 export type Lang = "en" | "ur";
 
-/** Direction helper for RTL/LTR layouts */
-export function dirFor(lang: Lang): "rtl" | "ltr" {
-  return lang === "ur" ? "rtl" : "ltr";
-}
-
-/** Read preferred language (falls back to EN) */
-export function getLang(): Lang {
-  if (typeof window !== "undefined") {
-    const v = window.localStorage.getItem("rb-lang");
-    if (v === "en" || v === "ur") return v;
-  }
-  return "en";
-}
-
-/** Persist language and notify listeners */
-export function setLang(lang: Lang) {
-  if (typeof window !== "undefined") {
-    window.localStorage.setItem("rb-lang", lang);
-    try {
-      window.dispatchEvent(new CustomEvent("rb-lang-changed", { detail: lang }));
-    } catch {}
-  }
-}
-
-/** Canonical strings */
 export const strings = {
   en: {
     app: "RentBack",
@@ -36,10 +10,10 @@ export const strings = {
     needHelp: "Need help?",
     support: "Support",
 
-    // legacy/compat
-    nav: { home: "Home" },
+    nav: {
+      home: "Home",
+    },
 
-    // Bottom nav
     bottom: {
       home: "Home",
       pay: "Pay",
@@ -47,159 +21,160 @@ export const strings = {
       profile: "Profile",
     },
 
-    // Tenant → Pay
-    pay: {
-      title: "Pay Rent",
-      subtitle: "Make a secure payment",
-      property: "Property",
-      amount: "Amount (PKR)",
-      method: "Payment Method",
-      create: "Create Payment",
-      markSent: "Mark as Sent",
-      print: "Print Receipt",
-      receipt: "Receipt",
-      success: "Payment created",
-      recent: "Recent payments",
-      emptyTitle: "No payments yet",
-      emptyCta: "Create your first payment",
-      methods: {
-        raast: "Raast",
-        bank: "Bank Transfer",
-        jazzcash: "JazzCash",
-      },
-      dueWarning: "Amount is less than the expected due.",
+    toggles: {
+      dark: "Dark",
+      light: "Light",
+      urdu: "اردو",
+      english: "English",
     },
 
-    // Tenant → Rewards
-    rewards: {
-      title: "Rewards",
-      balance: "Balance",
-      redeem: "Redeem",
-      activity: "Recent activity",
-      earned: "Earned",
-      redeemed: "Redeemed",
-      toGold: "to Gold Tier",
-      empty: "Make a rent payment to start earning points",
-      vendors: {
-        foodpanda: "Foodpanda",
-        daraz: "Daraz",
-        careem: "Careem",
-        cinepax: "Cinepax",
+    tenant: {
+      home: {
+        title: "Dashboard",
+        subtitle: "Your rent, rewards and receipts at a glance",
+        rentDue: "Current rent due",
+        quickPay: "Pay now",
+        rewardsBalance: "Rewards balance",
+        lastPayment: "Last payment",
+        viewReceipt: "View receipt",
+        shortcuts: {
+          pay: "Pay Rent",
+          rewards: "Rewards",
+          receipts: "Receipts",
+          support: "Support",
+        },
       },
-      voucher: {
-        code: "Voucher Code",
-        copied: "Code copied",
-        receiptTitle: "Redemption Receipt",
+
+      pay: {
+        title: "Pay Rent",
+        subtitle: "Create a payment and mark as sent",
+        property: "Property",
+        amount: "Amount (PKR)",
+        method: "Payment method",
+        methods: {
+          RAAST: "Raast (demo)",
+          BANK: "Bank Transfer (demo)",
+          JAZZCASH: "JazzCash (demo)",
+        },
+        create: "Create Payment",
+        markSent: "Mark as Sent",
+        sent: "Sent",
+        pending: "Pending",
+        warnBelowDue: "Amount is below the due amount.",
+        receipt: "Receipt",
+        print: "Print",
+      },
+
+      receipt: {
+        title: "Payment Receipt",
+        demoBadge: "Demo: Not a real payment",
+        tenant: "Tenant",
+        property: "Property",
+        amount: "Amount",
+        method: "Method",
+        date: "Date",
+        raastRef: "Raast reference",
+        print: "Print / Save",
+      },
+
+      rewards: {
+        title: "Rewards",
+        balance: "Current balance",
+        redeem: "Quick redeem",
+        activity: "Recent activity",
+        earned: "Earned",
+        redeemed: "Redeemed",
+        voucherCode: "Voucher code",
+        progress: {
+          toGold: "You're {{pts}} pts away from Gold Tier",
+        },
+        empty: "Make a rent payment to start earning points.",
+      },
+
+      profile: {
+        title: "Profile",
+        signOut: "Sign out (demo)",
+        privacy: "Privacy Policy",
+        terms: "Terms of Service",
+        needHelp: "Need Help?",
       },
     },
 
-    // Tenant → Receipt
-    receipt: {
-      title: "Payment Receipt",
-      demoNote: "Demo: Not a real payment",
-      backHome: "Back to Home",
-      print: "Print",
-      tenant: "Tenant",
-      email: "Email",
-      property: "Property",
-      amount: "Amount",
-      method: "Method",
-      date: "Date",
-      ref: "Reference",
-      qrHelp: "Scan to verify (demo)",
-    },
-
-    // Landlord
     landlord: {
       home: {
         title: "Landlord Dashboard",
         welcome: "Overview of payouts, ledger and properties",
-        // KPI labels
+
         rentCollected: "Rent collected (30 days)",
         pendingCount: "Payments pending confirmation",
-        // Card titles
+
         payoutsCard: "Payouts",
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
-        // Payouts card block
+
         payouts: {
           title: "Payouts",
           next: "Next settlement",
           day: "Friday",
-          none: "No settlements yet",
+          none: "No payouts yet",
         },
-        // Discrepancies card block
+
         discrepancies: {
           title: "Discrepancies",
-          subtitle: "Underpaid vs expected due",
+          subtitle: "Payments below due",
         },
-        // Last payment block
+
         lastPayment: "Last payment",
-        // 🔧 NEW: used by landlord/page.tsx for the button label
         viewReceipt: "View receipt",
+        emptyLastPayment: "No recent payments",
+
+        quickLinks: {
+          ledger: "Go to Ledger",
+          payouts: "View Payouts",
+          discrepancies: "Review Discrepancies",
+          properties: "Manage Properties",
+        },
       },
-      ledger: {
-        title: "Ledger",
-        exportCsv: "Export CSV",
-        empty: "No ledger entries yet",
-        viewReceipt: "View receipt",
-      },
-      payouts: {
-        title: "Payouts",
-        exportCsv: "Export CSV",
-        week: "Week",
-        amount: "Amount",
-        status: "Status",
-      },
-      discrepancies: {
-        title: "Discrepancies",
-        exportCsv: "Export CSV",
-        rowHint: "Payments under expected amount",
-      },
+
       properties: {
         title: "Properties",
         tenants: "Tenants",
         readOnly: "Read-only (demo)",
+        none: "No properties found",
       },
     },
 
-    // Admin
     admin: {
       home: {
         title: "Admin",
-        payouts: "Payouts Overview",
-        discrepancies: "Discrepancy Report",
-        transactions: "Transactions",
-      },
-      transactions: {
-        title: "Transactions",
-        exportCsv: "Export CSV",
+        cards: {
+          payouts: "Payouts Overview",
+          discrepancies: "Discrepancy Report",
+          transactions: "Transactions",
+        },
       },
       payouts: {
         title: "Payouts Overview",
-        exportCsv: "Export CSV",
       },
       discrepancies: {
         title: "Discrepancy Report",
-        exportCsv: "Export CSV",
       },
-    },
-
-    // Legal
-    legal: {
-      privacy: "Privacy Policy",
-      terms: "Terms of Service",
+      transactions: {
+        title: "Transactions",
+      },
     },
   },
 
   ur: {
     app: "رینٹ بیک",
     demo: "ڈیمو",
-    needHelp: "مدد چاہیے؟",
+    needHelp: "مدد درکار؟",
     support: "سپورٹ",
 
-    nav: { home: "ہوم" },
+    nav: {
+      home: "ہوم",
+    },
 
     bottom: {
       home: "ہوم",
@@ -208,145 +183,155 @@ export const strings = {
       profile: "پروفائل",
     },
 
-    pay: {
-      title: "کرایہ ادا کریں",
-      subtitle: "محفوظ ادائیگی کریں",
-      property: "پراپرٹی",
-      amount: "رقم (روپے)",
-      method: "ادائیگی کا طریقہ",
-      create: "ادائیگی بنائیں",
-      markSent: "بھجوایا نشان لگائیں",
-      print: "رسید پرنٹ کریں",
-      receipt: "رسید",
-      success: "ادائیگی بن گئی",
-      recent: "حالیہ ادائیگیاں",
-      emptyTitle: "ابھی کوئی ادائیگی نہیں",
-      emptyCta: "اپنی پہلی ادائیگی بنائیں",
-      methods: {
-        raast: "راعست",
-        bank: "بینک ٹرانسفر",
-        jazzcash: "جاز کیش",
-      },
-      dueWarning: "رقم واجب الادا سے کم ہے۔",
+    toggles: {
+      dark: "ڈارک",
+      light: "لائٹ",
+      urdu: "اردو",
+      english: "English",
     },
 
-    rewards: {
-      title: "ریوارڈز",
-      balance: "بیلنس",
-      redeem: "ریڈیـم",
-      activity: "حالیہ سرگرمی",
-      earned: "حاصل",
-      redeemed: "ریڈیـمڈ",
-      toGold: "گولڈ لیول تک",
-      empty: "ریوارڈز حاصل کرنے کے لیے کرایہ ادا کریں",
-      vendors: {
-        foodpanda: "فوڈ پانڈا",
-        daraz: "دراذ",
-        careem: "کریم",
-        cinepax: "سنی پیکس",
+    tenant: {
+      home: {
+        title: "ڈیش بورڈ",
+        subtitle: "آپ کے کرایہ، ریوارڈز اور رسیدیں ایک نظر میں",
+        rentDue: "موجودہ واجب الادا کرایہ",
+        quickPay: "ابھی ادا کریں",
+        rewardsBalance: "ریوارڈز بیلنس",
+        lastPayment: "آخری ادائیگی",
+        viewReceipt: "رسیـد دیکھیں",
+        shortcuts: {
+          pay: "کرایہ ادا کریں",
+          rewards: "ریوارڈز",
+          receipts: "رسیـدیں",
+          support: "سپورٹ",
+        },
       },
-      voucher: {
-        code: "واؤچر کوڈ",
-        copied: "کوڈ کاپی ہو گیا",
-        receiptTitle: "ریڈیمپشن رسید",
-      },
-    },
 
-    receipt: {
-      title: "ادائیگی کی رسید",
-      demoNote: "ڈیمو: یہ اصل ادائیگی نہیں ہے",
-      backHome: "ہوم پر واپس",
-      print: "پرنٹ",
-      tenant: "کرایہ دار",
-      email: "ای میل",
-      property: "پراپرٹی",
-      amount: "رقم",
-      method: "طریقہ",
-      date: "تاریخ",
-      ref: "حوالہ",
-      qrHelp: "تصدیق کے لیے اسکین کریں (ڈیمو)",
+      pay: {
+        title: "کرایہ ادا کریں",
+        subtitle: "ادائیگی بنائیں اور بھیج دیا کی حیثیت لگائیں",
+        property: "پراپرٹی",
+        amount: "رقم (PKR)",
+        method: "ادائیگی کا طریقہ",
+        methods: {
+          RAAST: "راست (ڈیمو)",
+          BANK: "بینک ٹرانسفر (ڈیمو)",
+          JAZZCASH: "جاز کیش (ڈیمو)",
+        },
+        create: "ادائیگی بنائیں",
+        markSent: "بھیج دیا",
+        sent: "بھیج دیا",
+        pending: "زیر التواء",
+        warnBelowDue: "رقم واجب الادا سے کم ہے۔",
+        receipt: "رسیـد",
+        print: "پرنٹ",
+      },
+
+      receipt: {
+        title: "ادائیگی کی رسید",
+        demoBadge: "ڈیمو: حقیقی ادائیگی نہیں",
+        tenant: "کرایہ دار",
+        property: "پراپرٹی",
+        amount: "رقم",
+        method: "طریقہ",
+        date: "تاریخ",
+        raastRef: "راست حوالہ",
+        print: "پرنٹ / محفوظ کریں",
+      },
+
+      rewards: {
+        title: "ریوارڈز",
+        balance: "موجودہ بیلنس",
+        redeem: "فوری ری ڈیم",
+        activity: "حالیہ سرگرمی",
+        earned: "حاصل",
+        redeemed: "ری ڈیم",
+        voucherCode: "واؤچر کوڈ",
+        progress: {
+          toGold: "گولڈ ٹئیر تک {{pts}} پوائنٹس باقی",
+        },
+        empty: "ریوارڈز حاصل کرنے کے لیے کرایہ ادا کریں۔",
+      },
+
+      profile: {
+        title: "پروفائل",
+        signOut: "سائن آؤٹ (ڈیمو)",
+        privacy: "پرائیویسی پالیسی",
+        terms: "سروس کی شرائط",
+        needHelp: "مدد درکار؟",
+      },
     },
 
     landlord: {
       home: {
         title: "لینڈلارڈ ڈیش بورڈ",
         welcome: "ادائیگیوں، لیجر اور پراپرٹیز کا خلاصہ",
-        rentCollected: "گزشتہ 30 دن میں وصول شدہ کرایہ",
-        pendingCount: "زیرِ التواء ادائیگیاں",
+
+        rentCollected: "گزشتہ 30 دن کا حاصل کردہ کرایہ",
+        pendingCount: "تصدیق کے منتظر پرداخت",
+
         payoutsCard: "ادائیگیاں",
         ledgerCard: "کھاتہ",
         discrepanciesCard: "فرق",
         propertiesCard: "پراپرٹیز",
+
         payouts: {
           title: "ادائیگیاں",
           next: "اگلی سیٹلمنٹ",
           day: "جمعہ",
-          none: "ابھی کوئی سیٹلمنٹ نہیں",
+          none: "تاحال کوئی ادائیگی نہیں",
         },
+
         discrepancies: {
           title: "فرق",
-          subtitle: "متوقع رقم کے مقابلے کم ادائیگی",
+          subtitle: "واجب الادا سے کم ادائیگیاں",
         },
+
         lastPayment: "آخری ادائیگی",
-        // 🔧 NEW (Urdu): matches landlord.home.viewReceipt usage
-        viewReceipt: "رسید دیکھیں",
+        viewReceipt: "رسیـد دیکھیں",
+        emptyLastPayment: "کوئی حالیہ ادائیگی نہیں",
+
+        quickLinks: {
+          ledger: "لیجر پر جائیں",
+          payouts: "ادائیگیاں دیکھیں",
+          discrepancies: "فرق چیک کریں",
+          properties: "پراپرٹیز مینیج کریں",
+        },
       },
-      ledger: {
-        title: "کھاتہ",
-        exportCsv: "CSV ایکسپورٹ",
-        empty: "کوئی اندراج موجود نہیں",
-        viewReceipt: "رسید دیکھیں",
-      },
-      payouts: {
-        title: "ادائیگیاں",
-        exportCsv: "CSV ایکسپورٹ",
-        week: "ہفتہ",
-        amount: "رقم",
-        status: "حالت",
-      },
-      discrepancies: {
-        title: "فرق کی رپورٹ",
-        exportCsv: "CSV ایکسپورٹ",
-        rowHint: "متوقع رقم سے کم ادائیگیاں",
-      },
+
       properties: {
         title: "پراپرٹیز",
         tenants: "کرایہ دار",
         readOnly: "صرف دیکھنے کے لیے (ڈیمو)",
+        none: "کوئی پراپرٹی موجود نہیں",
       },
     },
 
     admin: {
       home: {
         title: "ایڈمن",
-        payouts: "ادائیگیوں کا جائزہ",
-        discrepancies: "فرق رپورٹ",
-        transactions: "ٹرانزیکشنز",
+        cards: {
+          payouts: "پے آؤٹس اوور ویو",
+          discrepancies: "ڈسکریپینسی رپورٹ",
+          transactions: "ٹرانزیکشنز",
+        },
+      },
+      payouts: {
+        title: "پے آؤٹس اوور ویو",
+      },
+      discrepancies: {
+        title: "ڈسکریپینسی رپورٹ",
       },
       transactions: {
         title: "ٹرانزیکشنز",
-        exportCsv: "CSV ایکسپورٹ",
       },
-      payouts: {
-        title: "ادائیگیوں کا جائزہ",
-        exportCsv: "CSV ایکسپورٹ",
-      },
-      discrepancies: {
-        title: "فرق رپورٹ",
-        exportCsv: "CSV ایکسپورٹ",
-      },
-    },
-
-    legal: {
-      privacy: "پرائیویسی پالیسی",
-      terms: "شرائطِ استعمال",
     },
   },
 } as const;
 
-export type Strings = typeof strings.en;
+export const isRTL = (lang: Lang) => lang === "ur";
+export const dirFor = (lang: Lang) => (isRTL(lang) ? "rtl" : "ltr");
 
-/** Accessor */
-export function t(lang: Lang): typeof strings.en {
-  return strings[lang];
-}
+// Optional: a tiny helper if you ever want to get a language at runtime.
+// For now, most pages just import `strings` and choose keys directly.
+export const getStrings = (lang: Lang = "en") => strings[lang];
