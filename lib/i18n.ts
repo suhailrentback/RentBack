@@ -122,12 +122,17 @@ export const strings = {
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
-        // Nested block used in page.tsx
+        // Payouts card block
         payouts: {
           title: "Payouts",
           next: "Next settlement",
           day: "Friday",
-          none: "No settlements yet", // ← NEW key that was missing
+          none: "No settlements yet",
+        },
+        // NEW: Discrepancies card block (needed by landlord/page.tsx)
+        discrepancies: {
+          title: "Discrepancies",
+          subtitle: "Underpaid vs expected due",
         },
       },
       ledger: {
@@ -272,7 +277,12 @@ export const strings = {
           title: "ادائیگیاں",
           next: "اگلی سیٹلمنٹ",
           day: "جمعہ",
-          none: "ابھی کوئی سیٹلمنٹ نہیں", // ← Urdu for “No settlements yet”
+          none: "ابھی کوئی سیٹلمنٹ نہیں",
+        },
+        // NEW (Urdu): Discrepancies card block
+        discrepancies: {
+          title: "فرق",
+          subtitle: "متوقع رقم کے مقابلے کم ادائیگی",
         },
       },
       ledger: {
