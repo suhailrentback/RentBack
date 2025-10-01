@@ -103,33 +103,4 @@ export const strings = {
     landlord: {
       home: {
         title: "Landlord Dashboard",
-        welcome: "Overview of payouts, ledger and properties",
-
-        rentCollected: "Rent collected (30 days)",
-        pendingCount: "Payments pending confirmation",
-
-        payoutsCard: "Payouts",
-        ledgerCard: "Ledger",
-        discrepanciesCard: "Discrepancies",
-        propertiesCard: "Properties",
-      },
-
-      payouts: {
-        title: "Payouts",
-        next: "Next settlement",
-        day: "Friday",
-        none: "No payouts yet",
-      },
-
-      discrepancies: {
-        title: "Discrepancies",
-        subtitle: "Payments below due",
-      },
-
-      lastPayment: "Last payment",
-      viewReceipt: "View receipt",
-      emptyLastPayment: "No recent payments",
-
-      quickLinks: {
-        ledger: "Go to Ledger",
-        payouts: "View Payouts",
+        welcome: "Overview of payouts, ledger and properties
