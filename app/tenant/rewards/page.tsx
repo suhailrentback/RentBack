@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { CardSkeleton, ListSkeleton } from "@/components/Skeletons";
+import { ListSkeleton } from "@/components/Skeletons"; // ✅ only use ListSkeleton
 import { strings, type Lang } from "@/lib/i18n";
 import { loadRewards, saveRewards } from "@/lib/demo";
 
@@ -38,23 +38,31 @@ export default function TenantRewardsPage() {
   const [activity, setActivity] = useState<Activity[]>([]);
 
   useEffect(() => {
-    const r = loadRewards(); // must be same key used in Pay
+    const r = loadRewards(); // same key as Pay
     setBalance(r.balance || 0);
     setActivity(r.activity || []);
     setLoading(false);
   }, []);
 
   const animated = useCountUp(balance);
-
   const toNextTier = useMemo(() => Math.max(0, 1000 - balance), [balance]);
 
   function redeem(vendor: string, cost: number) {
     if (balance < cost) return;
-    const code = vendor.slice(0, 3).toUpperCase() + "-" + Math.random().toString(36).slice(2, 8).toUpperCase();
+    const code =
+      vendor.slice(0, 3).toUpperCase() +
+      "-" +
+      Math.random().toString(36).slice(2, 8).toUpperCase();
     const now = new Date().toISOString();
 
     const newBal = balance - cost;
-    const entry: Activity = { type: "REDEEM", pts: cost, at: now, vendor, code };
+    const entry: Activity = {
+      type: "REDEEM",
+      pts: cost,
+      at: now,
+      vendor,
+      code,
+    };
     const next = [entry, ...activity];
 
     setBalance(newBal);
@@ -83,15 +91,23 @@ export default function TenantRewardsPage() {
 
         {/* Balance card */}
         {loading ? (
-          <CardSkeleton />
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5">
+            <div className="h-3 w-24 bg-black/10 dark:bg-white/10 rounded mb-3" />
+            <div className="h-8 w-40 bg-black/10 dark:bg-white/10 rounded" />
+          </div>
         ) : (
           <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white">
             <div className="text-xs opacity-90">{t.tenant.rewards.balance}</div>
-            <div className="mt-2 text-3xl font-semibold tabular-nums">{animated.toLocaleString()}</div>
+            <div className="mt-2 text-3xl font-semibold tabular-nums">
+              {animated.toLocaleString()}
+            </div>
 
             {/* Progress to tier */}
             <div className="mt-4 text-xs opacity-90">
-              {t.tenant.rewards.progress.toGold.replace("{{pts}}", String(toNextTier))}
+              {t.tenant.rewards.progress.toGold.replace(
+                "{{pts}}",
+                String(toNextTier)
+              )}
             </div>
             <div className="h-2 w-full bg-white/20 rounded-full mt-2">
               <div
@@ -138,15 +154,24 @@ export default function TenantRewardsPage() {
                 >
                   <div>
                     <div className="font-medium">
-                      {a.type === "EARN" ? t.tenant.rewards.earned : t.tenant.rewards.redeemed}
+                      {a.type === "EARN"
+                        ? t.tenant.rewards.earned
+                        : t.tenant.rewards.redeemed}
                     </div>
                     <div className="text-xs opacity-70">
-                      {new Date(a.at).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")}
-                      {("vendor" in a) && ` • ${a.vendor}`}
-                      {("code" in a) && ` • ${t.tenant.rewards.voucherCode}: ${a.code}`}
+                      {new Date(a.at).toLocaleString(
+                        lang === "ur" ? "ur-PK" : "en-PK"
+                      )}
+                      {"vendor" in a && ` • ${a.vendor}`}
+                      {"code" in a &&
+                        ` • ${t.tenant.rewards.voucherCode}: ${a.code}`}
                     </div>
                   </div>
-                  <div className={`text-sm font-semibold ${a.type === "EARN" ? "text-emerald-600" : "text-rose-600"}`}>
+                  <div
+                    className={`text-sm font-semibold ${
+                      a.type === "EARN" ? "text-emerald-600" : "text-rose-600"
+                    }`}
+                  >
                     {a.type === "EARN" ? "+" : "-"}
                     {a.pts}
                   </div>
