@@ -25,15 +25,18 @@ export const strings = {
       english: "English",
     },
     receipt: {
-        title: "Payment Receipt",
-        demo: "Demo: Not a real payment", // ✨ FIX: Renamed demoBadge to demo
+      title: "Payment Receipt",
+      demo: "Demo: Not a real payment",
+      print: "Print / Save",
+      // ✨ FIX: Created the nested 'details' object
+      details: {
         tenant: "Tenant",
         property: "Property",
         amount: "Amount",
         method: "Method",
         date: "Date",
         raastRef: "Raast reference",
-        print: "Print / Save",
+      },
     },
     tenant: {
       home: {
@@ -72,14 +75,17 @@ export const strings = {
       },
       receipt: {
         title: "Payment Receipt",
-        demo: "Demo: Not a real payment", // ✨ FIX: Renamed demoBadge to demo
-        tenant: "Tenant",
-        property: "Property",
-        amount: "Amount",
-        method: "Method",
-        date: "Date",
-        raastRef: "Raast reference",
+        demo: "Demo: Not a real payment",
         print: "Print / Save",
+        // ✨ FIX: Created the nested 'details' object
+        details: {
+            tenant: "Tenant",
+            property: "Property",
+            amount: "Amount",
+            method: "Method",
+            date: "Date",
+            raastRef: "Raast reference",
+        },
       },
       rewards: {
         title: "Rewards",
@@ -141,15 +147,18 @@ export const strings = {
       english: "English",
     },
     receipt: {
-        title: "ادائیگی کی رسید",
-        demo: "ڈیمو: حقیقی ادائیگی نہیں", // ✨ FIX: Renamed demoBadge to demo
+      title: "ادائیگی کی رسید",
+      demo: "ڈیمو: حقیقی ادائیگی نہیں",
+      print: "پرنٹ / محفوظ کریں",
+      // ✨ FIX: Created the nested 'details' object
+      details: {
         tenant: "کرایہ دار",
         property: "پراپرٹی",
         amount: "رقم",
         method: "طریقہ",
         date: "تاریخ",
         raastRef: "راست حوالہ",
-        print: "پرنٹ / محفوظ کریں",
+      },
     },
     tenant: {
       home: {
@@ -188,14 +197,17 @@ export const strings = {
       },
       receipt: {
         title: "ادائیگی کی رسید",
-        demo: "ڈیمو: حقیقی ادائیگی نہیں", // ✨ FIX: Renamed demoBadge to demo
-        tenant: "کرایہ دار",
-        property: "پراپرٹی",
-        amount: "رقم",
-        method: "طریقہ",
-        date: "تاریخ",
-        raastRef: "راست حوالہ",
+        demo: "ڈیمو: حقیقی ادائیگی نہیں",
         print: "پرنٹ / محفوظ کریں",
+        // ✨ FIX: Created the nested 'details' object
+        details: {
+            tenant: "کرایہ دار",
+            property: "پراپرٹی",
+            amount: "رقم",
+            method: "طریقہ",
+            date: "تاریخ",
+            raastRef: "راست حوالہ",
+        },
       },
       rewards: {
         title: "انعامات",
