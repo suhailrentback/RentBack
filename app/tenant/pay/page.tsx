@@ -90,7 +90,7 @@ export default function TenantPayPage() {
     setPayments(next);
     savePayments(next);
 
-    // Credit +1% rewards on SENT — conform to RewardActivity shape
+    // Credit +1% rewards on SENT — align to RewardActivity (no `ref`)
     const credited = next.find((p) => p.id === id);
     if (credited) {
       const current: RewardsState = loadRewards();
@@ -101,7 +101,6 @@ export default function TenantPayPage() {
         type: "EARN",
         points: add,
         createdAt: new Date().toISOString(),
-        ref: id,
       };
 
       const updated: RewardsState = {
@@ -191,9 +190,7 @@ export default function TenantPayPage() {
             </div>
           </div>
 
-          {error && (
-            <div className="mt-2 text-xs text-red-600">{error}</div>
-          )}
+          {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
 
           <button
             onClick={createPayment}
