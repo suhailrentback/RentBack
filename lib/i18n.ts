@@ -24,10 +24,9 @@ export const strings = {
       urdu: "اردو",
       english: "English",
     },
-    // ✨ FIX: Added a top-level receipt object for the receipt page
     receipt: {
         title: "Payment Receipt",
-        demoBadge: "Demo: Not a real payment",
+        demo: "Demo: Not a real payment", // ✨ FIX: Renamed demoBadge to demo
         tenant: "Tenant",
         property: "Property",
         amount: "Amount",
@@ -73,7 +72,7 @@ export const strings = {
       },
       receipt: {
         title: "Payment Receipt",
-        demoBadge: "Demo: Not a real payment",
+        demo: "Demo: Not a real payment", // ✨ FIX: Renamed demoBadge to demo
         tenant: "Tenant",
         property: "Property",
         amount: "Amount",
@@ -141,10 +140,9 @@ export const strings = {
       urdu: "اردو",
       english: "English",
     },
-     // ✨ FIX: Added a top-level receipt object for the receipt page
     receipt: {
         title: "ادائیگی کی رسید",
-        demoBadge: "ڈیمو: حقیقی ادائیگی نہیں",
+        demo: "ڈیمو: حقیقی ادائیگی نہیں", // ✨ FIX: Renamed demoBadge to demo
         tenant: "کرایہ دار",
         property: "پراپرٹی",
         amount: "رقم",
@@ -190,7 +188,7 @@ export const strings = {
       },
       receipt: {
         title: "ادائیگی کی رسید",
-        demoBadge: "ڈیمو: حقیقی ادائیگی نہیں",
+        demo: "ڈیمو: حقیقی ادائیگی نہیں", // ✨ FIX: Renamed demoBadge to demo
         tenant: "کرایہ دار",
         property: "پراپرٹی",
         amount: "رقم",
