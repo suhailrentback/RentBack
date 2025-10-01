@@ -28,14 +28,18 @@ export const strings = {
       title: "Payment Receipt",
       demo: "Demo: Not a real payment",
       print: "Print / Save",
+      sent: "Sent", // ✨ FIX
+      pending: "Pending", // ✨ FIX
       details: {
         tenant: "Tenant",
-        email: "Email", // ✨ FIX
+        email: "Email",
         property: "Property",
         amount: "Amount",
         method: "Method",
         date: "Date",
         raastRef: "Raast reference",
+        status: "Status", // ✨ FIX
+        raast: "Raast Reference", // ✨ FIX
       },
     },
     tenant: {
@@ -77,14 +81,18 @@ export const strings = {
         title: "Payment Receipt",
         demo: "Demo: Not a real payment",
         print: "Print / Save",
+        sent: "Sent", // ✨ FIX
+        pending: "Pending", // ✨ FIX
         details: {
             tenant: "Tenant",
-            email: "Email", // ✨ FIX
+            email: "Email",
             property: "Property",
             amount: "Amount",
             method: "Method",
             date: "Date",
             raastRef: "Raast reference",
+            status: "Status", // ✨ FIX
+            raast: "Raast Reference", // ✨ FIX
         },
       },
       rewards: {
@@ -150,14 +158,18 @@ export const strings = {
       title: "ادائیگی کی رسید",
       demo: "ڈیمو: حقیقی ادائیگی نہیں",
       print: "پرنٹ / محفوظ کریں",
+      sent: "بھیجا گیا", // ✨ FIX
+      pending: "زیر التواء", // ✨ FIX
       details: {
         tenant: "کرایہ دار",
-        email: "ای میل", // ✨ FIX
+        email: "ای میل",
         property: "پراپرٹی",
         amount: "رقم",
         method: "طریقہ",
         date: "تاریخ",
         raastRef: "راست حوالہ",
+        status: "حیثیت", // ✨ FIX
+        raast: "راست حوالہ", // ✨ FIX
       },
     },
     tenant: {
@@ -199,14 +211,18 @@ export const strings = {
         title: "ادائیگی کی رسید",
         demo: "ڈیمو: حقیقی ادائیگی نہیں",
         print: "پرنٹ / محفوظ کریں",
+        sent: "بھیجا گیا", // ✨ FIX
+        pending: "زیر التواء", // ✨ FIX
         details: {
             tenant: "کرایہ دار",
-            email: "ای میل", // ✨ FIX
+            email: "ای میل",
             property: "پراپرٹی",
             amount: "رقم",
             method: "طریقہ",
             date: "تاریخ",
             raastRef: "راست حوالہ",
+            status: "حیثیت", // ✨ FIX
+            raast: "راست حوالہ", // ✨ FIX
         },
       },
       rewards: {
