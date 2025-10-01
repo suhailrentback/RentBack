@@ -104,6 +104,9 @@ export const strings = {
         none: "No properties found.",
         tenants: "Tenants",
         expected: "Expected",
+        due: "Next Due", // ✨ FIX
+        status: "Status", // ✨ FIX
+        active: "Active", // ✨ FIX
       },
     },
   },
@@ -205,6 +208,9 @@ export const strings = {
         none: "کوئی جائیداد نہیں ملی۔",
         tenants: "کرایہ دار",
         expected: "متوقع",
+        due: "اگلی تاریخ", // ✨ FIX
+        status: "حیثیت", // ✨ FIX
+        active: "فعال", // ✨ FIX
       },
     },
   },
