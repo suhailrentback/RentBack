@@ -1,6 +1,6 @@
 // lib/i18n.ts
-// Complete i18n bundle for EN / UR with helpers used across the app.
-// Safe to drop-in replace. No JSX here (server + client safe).
+// Complete EN/UR strings used across Tenant/Landlord/Admin + helpers.
+// Safe drop-in replacement.
 
 export type Lang = "en" | "ur";
 
@@ -9,7 +9,7 @@ export function dirFor(lang: Lang): "rtl" | "ltr" {
   return lang === "ur" ? "rtl" : "ltr";
 }
 
-/** Try to read the preferred language from localStorage (client) or default to EN */
+/** Read preferred language (falls back to EN) */
 export function getLang(): Lang {
   if (typeof window !== "undefined") {
     const v = window.localStorage.getItem("rb-lang");
@@ -18,16 +18,17 @@ export function getLang(): Lang {
   return "en";
 }
 
-/** Set the language (persists for demo) */
+/** Persist language and notify listeners */
 export function setLang(lang: Lang) {
   if (typeof window !== "undefined") {
     window.localStorage.setItem("rb-lang", lang);
-    // Optional: trigger a soft refresh of UI that reads strings at render time
-    try { window.dispatchEvent(new CustomEvent("rb-lang-changed", { detail: lang })); } catch {}
+    try {
+      window.dispatchEvent(new CustomEvent("rb-lang-changed", { detail: lang }));
+    } catch {}
   }
 }
 
-/** Canonical strings used throughout the demo */
+/** Canonical strings */
 export const strings = {
   en: {
     app: "RentBack",
@@ -35,7 +36,7 @@ export const strings = {
     needHelp: "Need help?",
     support: "Support",
 
-    // Legacy nav labels some pages referenced
+    // Kept for older references
     nav: { home: "Home" },
 
     // Bottom nav
@@ -116,11 +117,17 @@ export const strings = {
         // KPI labels
         rentCollected: "Rent collected (30 days)",
         pendingCount: "Payments pending confirmation",
-        // Cards (buttons)
+        // Card titles (buttons)
         payoutsCard: "Payouts",
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
+        // NEW nested block used by page.tsx
+        payouts: {
+          title: "Payouts",
+          next: "Next settlement",
+          day: "Friday",
+        },
       },
       ledger: {
         title: "Ledger",
@@ -260,6 +267,11 @@ export const strings = {
         ledgerCard: "کھاتہ",
         discrepanciesCard: "فرق",
         propertiesCard: "پراپرٹیز",
+        payouts: {
+          title: "ادائیگیاں",
+          next: "اگلی سیٹلمنٹ",
+          day: "جمعہ",
+        },
       },
       ledger: {
         title: "کھاتہ",
@@ -268,7 +280,7 @@ export const strings = {
         viewReceipt: "رسید دیکھیں",
       },
       payouts: {
-        title: "ادائیگیوں کا خلاصہ",
+        title: "ادائیگیاں",
         exportCsv: "CSV ایکسپورٹ",
         week: "ہفتہ",
         amount: "رقم",
