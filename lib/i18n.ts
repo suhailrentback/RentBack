@@ -1,25 +1,20 @@
-// lib/i18n.ts
+ // lib/i18n.ts
 
 export type Lang = "en" | "ur";
 
-// Central strings used across the app.
-// Keep ALL UI copy inside this file so Urdu/RTL works everywhere.
 export const strings = {
   en: {
     app: "RentBack",
     demo: "Demo",
     needHelp: "Need help?",
     support: "Support",
-    // Bottom nav labels (used by BottomNav)
     bottom: { home: "Home", pay: "Pay", rewards: "Rewards", profile: "Profile" },
 
-    // Landing / auth (if used anywhere)
     signIn: "Sign in",
     signOut: "Sign out",
     email: "Email",
     continue: "Continue",
 
-    // Tenant: Pay
     pay: {
       title: "Pay Rent",
       subtitle: "Demo Mode — no real charges",
@@ -50,7 +45,6 @@ export const strings = {
       raastQR: "Raast QR (demo)",
     },
 
-    // Tenant: Rewards
     rewards: {
       title: "Rewards",
       subtitle: "Pakistan-focused perks",
@@ -71,7 +65,6 @@ export const strings = {
       toNextTier: "to next tier",
     },
 
-    // Tenant: Receipt (/tenant/receipt/[id])
     receipt: {
       title: "Payment Receipt",
       demoNote: "Demo: Not a real payment",
@@ -86,9 +79,7 @@ export const strings = {
       backHome: "Back to Home",
     },
 
-    // Landlord
     landlord: {
-      // ✅ NEW: used by /landlord (Home dashboard)
       home: {
         title: "Landlord Dashboard",
         welcome: "Overview of payouts, ledger and properties",
@@ -126,7 +117,6 @@ export const strings = {
       },
     },
 
-    // Admin (used by Admin home / cards / pages)
     admin: {
       home: {
         title: "Admin",
@@ -148,7 +138,6 @@ export const strings = {
       },
     },
 
-    // Legal / misc
     legal: {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
@@ -297,7 +286,7 @@ export const strings = {
   },
 } as const;
 
-// Utility: set RTL for Urdu
+// RTL helper for Urdu
 export function dirFor(lang: Lang): "ltr" | "rtl" {
   return lang === "ur" ? "rtl" : "ltr";
 }
