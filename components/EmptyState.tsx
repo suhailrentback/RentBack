@@ -7,23 +7,25 @@ import Link from 'next/link';
 type Props = {
   title: string;
   /**
-   * Preferred prop (new).
+   * Preferred prop (new) – short supporting text.
    */
   description?: React.ReactNode;
   /**
-   * Backwards-compat alias for older pages that pass "body".
-   * If provided, it will be used instead of "description".
+   * Back-compat aliases:
+   * - "body" (older pages)
+   * - "subtitle" (some pages use this wording)
+   * If either is provided, it takes precedence over "description".
    */
   body?: React.ReactNode;
+  subtitle?: React.ReactNode;
+
   ctaLabel?: string;
   ctaHref?: string;
-  /**
-   * Optional icon (emoji or small SVG/JSX).
-   */
+
+  /** Optional icon (emoji or small SVG/JSX). */
   icon?: React.ReactNode;
-  /**
-   * When true, renders a subtle border and background.
-   */
+
+  /** When true, renders a subtle border and background. */
   framed?: boolean;
 };
 
@@ -31,12 +33,14 @@ export default function EmptyState({
   title,
   description,
   body,
+  subtitle,
   ctaLabel,
   ctaHref,
   icon,
   framed = true,
 }: Props) {
-  const text = body ?? description;
+  // prefer legacy aliases if present, else use description
+  const text = body ?? subtitle ?? description;
 
   return (
     <div
@@ -57,9 +61,7 @@ export default function EmptyState({
 
         <h3 className="text-base font-semibold">{title}</h3>
 
-        {text ? (
-          <p className="max-w-sm text-sm opacity-70">{text}</p>
-        ) : null}
+        {text ? <p className="max-w-sm text-sm opacity-70">{text}</p> : null}
 
         {ctaLabel && ctaHref ? (
           <div className="pt-1">
