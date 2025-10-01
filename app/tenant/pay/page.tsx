@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { ListSkeleton } from "@/components/Skeletons"; // ✅ only use ListSkeleton
+import { ListSkeleton } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
 import {
   formatPKR,
@@ -13,6 +13,8 @@ import {
   saveRewards,
   type DemoPayment,
   type Method,
+  type RewardsState,
+  type RewardActivity,
 } from "@/lib/demo";
 import Link from "next/link";
 
@@ -37,7 +39,6 @@ export default function TenantPayPage() {
     setLoading(true);
     const p = loadPayments();
     setPayments(p);
-    // Autofill from last payment if exists
     const last = p[0];
     if (last) {
       setProperty(last.property);
@@ -51,7 +52,7 @@ export default function TenantPayPage() {
   const warnBelowDue = amount < suggestedAmount;
 
   function createPayment() {
-    if (creating.current) return; // debounce double tap
+    if (creating.current) return;
     setError(null);
 
     if (!property) return setError("Please select a property.");
@@ -79,28 +80,35 @@ export default function TenantPayPage() {
   }
 
   function markSent(id: string) {
-    if (marking.current === id) return; // debounce per-item
+    if (marking.current === id) return;
     marking.current = id;
 
+    // Update payment status
     const next = payments.map((p) =>
       p.id === id ? { ...p, status: "SENT" as Status } : p
     );
     setPayments(next);
     savePayments(next);
 
-    // Credit +1% rewards on SENT
+    // Credit +1% rewards on SENT — conform to RewardActivity shape
     const credited = next.find((p) => p.id === id);
     if (credited) {
-      const r = loadRewards();
+      const current: RewardsState = loadRewards();
       const add = Math.floor(credited.amount * 0.01);
-      const updated = {
-        ...r,
-        balance: (r.balance || 0) + add,
-        activity: [
-          { type: "EARN", pts: add, at: new Date().toISOString(), ref: id },
-          ...(r.activity || []),
-        ],
+
+      const earnEntry: RewardActivity = {
+        id: crypto.randomUUID(),
+        type: "EARN",
+        points: add,
+        createdAt: new Date().toISOString(),
+        ref: id,
       };
+
+      const updated: RewardsState = {
+        balance: (current.balance || 0) + add,
+        activity: [earnEntry, ...(current.activity || [])],
+      };
+
       saveRewards(updated);
     }
 
