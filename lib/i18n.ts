@@ -32,7 +32,8 @@ export const strings = {
       pending: "Pending",
       qrLabel: "Scan to verify (demo)",
       backHome: "Back to Home",
-      makeAnotherPayment: "Make Another Payment", // ✨ THE ACTUAL FINAL FIX
+      makeAnotherPayment: "Make Another Payment",
+      rewardsLinkLabel: "Claim Rewards", // ✨ THE ABSOLUTE FINAL FIX
       details: {
         tenant: "Tenant",
         email: "Email",
@@ -88,7 +89,8 @@ export const strings = {
         pending: "Pending",
         qrLabel: "Scan to verify (demo)",
         backHome: "Back to Home",
-        makeAnotherPayment: "Make Another Payment", // ✨ THE ACTUAL FINAL FIX
+        makeAnotherPayment: "Make Another Payment",
+        rewardsLinkLabel: "Claim Rewards", // ✨ THE ABSOLUTE FINAL FIX
         details: {
             tenant: "Tenant",
             email: "Email",
@@ -168,7 +170,8 @@ export const strings = {
       pending: "زیر التواء",
       qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
       backHome: "ہوم پر واپس",
-      makeAnotherPayment: "ایک اور ادائیگی کریں", // ✨ THE ACTUAL FINAL FIX
+      makeAnotherPayment: "ایک اور ادائیگی کریں",
+      rewardsLinkLabel: "انعامات کا دعوی کریں", // ✨ THE ABSOLUTE FINAL FIX
       details: {
         tenant: "کرایہ دار",
         email: "ای میل",
@@ -224,7 +227,8 @@ export const strings = {
         pending: "زیر التواء",
         qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
         backHome: "ہوم پر واپس",
-        makeAnotherPayment: "ایک اور ادائیگی کریں", // ✨ THE ACTUAL FINAL FIX
+        makeAnotherPayment: "ایک اور ادائیگی کریں",
+        rewardsLinkLabel: "انعامات کا دعوی کریں", // ✨ THE ABSOLUTE FINAL FIX
         details: {
             tenant: "کرایہ دار",
             email: "ای میل",
