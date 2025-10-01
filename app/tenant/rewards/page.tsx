@@ -1,188 +1,118 @@
 // app/tenant/rewards/page.tsx
 "use client";
-
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { ListSkeleton } from "@/components/Skeletons";
+import { CardSkel } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
-import {
-  loadRewards,
-  saveRewards,
-  type RewardsState,
-  type RewardActivity,
-} from "@/lib/demo";
-
-function useCountUp(target: number, duration = 600) {
-  const [val, setVal] = useState(0);
-  const start = useRef<number | null>(null);
-
-  useEffect(() => {
-    start.current = null;
-    const step = (ts: number) => {
-      if (start.current == null) start.current = ts;
-      const p = Math.min(1, (ts - start.current) / duration);
-      setVal(Math.round(p * target));
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [target, duration]);
-
-  return val;
-}
+import { loadRewards, saveRewards, type RewardsState } from "@/lib/demo";
 
 export default function TenantRewardsPage() {
-  const [lang] = useState<Lang>("en");
+  const lang: Lang = typeof window !== "undefined" && localStorage.getItem("demo-lang") === "ur" ? "ur" : "en";
   const t = strings[lang];
 
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(0);
-  const [activity, setActivity] = useState<RewardActivity[]>([]);
+  const [rewards, setRewards] = useState<RewardsState>({ balance: 0, activity: [] });
+  const [displayBalance, setDisplayBalance] = useState(0);
+  const animRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const r: RewardsState = loadRewards();
-    setBalance(r.balance || 0);
-    setActivity(r.activity || []);
+    setLoading(true);
+    const r = loadRewards();
+    setRewards(r);
     setLoading(false);
+
+    // animated count-up
+    const duration = 600;
+    const start = performance.now();
+    const from = 0;
+    const to = r.balance;
+
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      setDisplayBalance(Math.round(from + (to - from) * p));
+      if (p < 1) animRef.current = requestAnimationFrame(tick);
+    };
+    animRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
   }, []);
 
-  const animated = useCountUp(balance);
-  const toNextTier = useMemo(() => Math.max(0, 1000 - balance), [balance]);
+  const redeemVoucher = () => {
+    const points = 200; // fixed demo redemption
+    if (rewards.balance < points) return;
 
-  function redeem(vendor: string, cost: number) {
-    if (balance < cost) return;
-    const code =
-      vendor.slice(0, 3).toUpperCase() +
-      "-" +
-      Math.random().toString(36).slice(2, 8).toUpperCase();
-    const now = new Date().toISOString();
-
-    const newBal = balance - cost;
-    const entry: RewardActivity = {
-      id: crypto.randomUUID(),
-      type: "REDEEM",
-      points: cost,
-      createdAt: now,
-      vendor,
-      code,
+    const entry = {
+      id: Math.random().toString(36).slice(2, 9),
+      type: "REDEEM" as const,
+      points: -points,
+      createdAt: new Date().toISOString(),
     };
-    const next = [entry, ...activity];
-
-    setBalance(newBal);
-    setActivity(next);
-    const updated: RewardsState = { balance: newBal, activity: next };
+    const updated: RewardsState = {
+      balance: rewards.balance - points,
+      activity: [entry, ...rewards.activity],
+    };
     saveRewards(updated);
-    alert(`${vendor} ${t.tenant.rewards.voucherCode}: ${code}`);
-  }
+    setRewards(updated);
+    setDisplayBalance(updated.balance);
+    alert("Voucher redeemed! (demo)");
+  };
 
-  const vendors = [
-    { name: "Foodpanda", cost: 200 },
-    { name: "Daraz", cost: 300 },
-    { name: "Careem", cost: 250 },
-    { name: "Cinepax", cost: 150 },
-  ];
+  const pctToGold = Math.max(0, Math.min(100, Math.round((rewards.balance / 2000) * 100)));
 
   return (
     <MobileAppShell>
-      <div className="p-4 space-y-5">
-        {/* Header */}
+      <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">{t.tenant.rewards.title}</h1>
-          <div className="text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">
-            {t.demo}
-          </div>
+          <button
+            onClick={redeemVoucher}
+            className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+            disabled={rewards.balance < 200}
+            title={rewards.balance < 200 ? "Need 200+ points to redeem (demo)" : ""}
+          >
+            {t.tenant.rewards.redeem}
+          </button>
         </div>
 
-        {/* Balance card */}
         {loading ? (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5">
-            <div className="h-3 w-24 bg-black/10 dark:bg-white/10 rounded mb-3" />
-            <div className="h-8 w-40 bg-black/10 dark:bg-white/10 rounded" />
-          </div>
+          <CardSkel />
         ) : (
-          <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-gradient-to-br from-indigo-600 to-fuchsia-500 text-white">
-            <div className="text-xs opacity-90">{t.tenant.rewards.balance}</div>
-            <div className="mt-2 text-3xl font-semibold tabular-nums">
-              {animated.toLocaleString()}
+          <>
+            <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+              <div className="text-sm opacity-80">{t.tenant.rewards.balance}</div>
+              <div className="mt-1 text-3xl font-semibold tracking-wide">{displayBalance} pts</div>
+
+              <div className="mt-4 text-xs opacity-80">
+                {t.tenant.rewards.progress.toGold.replace("{{pts}}", String(Math.max(0, 2000 - rewards.balance)))}
+              </div>
+              <div className="mt-2 h-2 rounded bg-black/10 dark:bg-white/10 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-600"
+                  style={{ width: `${pctToGold}%` }}
+                />
+              </div>
             </div>
 
-            {/* Progress to tier */}
-            <div className="mt-4 text-xs opacity-90">
-              {t.tenant.rewards.progress.toGold.replace(
-                "{{pts}}",
-                String(toNextTier)
-              )}
+            <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+              <div className="text-sm font-medium">{t.tenant.rewards.activity}</div>
+              <ul className="mt-3 space-y-2 text-sm">
+                {rewards.activity.length === 0 ? (
+                  <li className="opacity-70">{t.tenant.rewards.empty}</li>
+                ) : (
+                  rewards.activity.map((a) => (
+                    <li key={a.id} className="flex items-center justify-between">
+                      <span>{a.type === "EARN" ? t.tenant.rewards.earned : t.tenant.rewards.redeemed}</span>
+                      <span className={a.points > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-red-600"}>
+                        {a.points > 0 ? `+${a.points}` : a.points} pts
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
             </div>
-            <div className="h-2 w-full bg-white/20 rounded-full mt-2">
-              <div
-                className="h-2 bg-white/80 rounded-full"
-                style={{ width: `${Math.min(100, (balance / 1000) * 100)}%` }}
-              />
-            </div>
-          </section>
+          </>
         )}
-
-        {/* Quick Redeem */}
-        <section>
-          <div className="text-xs opacity-70 mb-2">{t.tenant.rewards.redeem}</div>
-          <div className="grid grid-cols-2 gap-3">
-            {vendors.map((v) => (
-              <button
-                key={v.name}
-                onClick={() => redeem(v.name, v.cost)}
-                disabled={balance < v.cost}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-left hover:bg-black/5 dark:hover:bg-white/5 transition disabled:opacity-50"
-              >
-                <div className="font-medium">{v.name}</div>
-                <div className="text-xs opacity-70">{v.cost} pts</div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Recent activity */}
-        <section>
-          <div className="text-xs opacity-70 mb-2">{t.tenant.rewards.activity}</div>
-          {loading ? (
-            <ListSkeleton />
-          ) : activity.length === 0 ? (
-            <div className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-xs opacity-70">
-              {t.tenant.rewards.empty}
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {activity.map((a) => (
-                <li
-                  key={a.id}
-                  className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-medium">
-                      {a.type === "EARN"
-                        ? t.tenant.rewards.earned
-                        : t.tenant.rewards.redeemed}
-                    </div>
-                    <div className="text-xs opacity-70">
-                      {new Date(a.createdAt).toLocaleString(
-                        lang === "ur" ? "ur-PK" : "en-PK"
-                      )}
-                      {a.vendor && ` • ${a.vendor}`}
-                      {a.code &&
-                        ` • ${t.tenant.rewards.voucherCode}: ${a.code}`}
-                    </div>
-                  </div>
-                  <div
-                    className={`text-sm font-semibold ${
-                      a.type === "EARN" ? "text-emerald-600" : "text-rose-600"
-                    }`}
-                  >
-                    {a.type === "EARN" ? "+" : "-"}
-                    {a.points}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
       </div>
     </MobileAppShell>
   );
