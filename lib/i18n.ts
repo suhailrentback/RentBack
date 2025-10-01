@@ -31,7 +31,8 @@ export const strings = {
       sent: "Sent",
       pending: "Pending",
       qrLabel: "Scan to verify (demo)",
-      backHome: "Back to Home", // ✨ THE FINAL FIX
+      backHome: "Back to Home",
+      makeAnotherPayment: "Make Another Payment", // ✨ THE ACTUAL FINAL FIX
       details: {
         tenant: "Tenant",
         email: "Email",
@@ -86,7 +87,8 @@ export const strings = {
         sent: "Sent",
         pending: "Pending",
         qrLabel: "Scan to verify (demo)",
-        backHome: "Back to Home", // ✨ THE FINAL FIX
+        backHome: "Back to Home",
+        makeAnotherPayment: "Make Another Payment", // ✨ THE ACTUAL FINAL FIX
         details: {
             tenant: "Tenant",
             email: "Email",
@@ -165,7 +167,8 @@ export const strings = {
       sent: "بھیجا گیا",
       pending: "زیر التواء",
       qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
-      backHome: "ہوم پر واپس", // ✨ THE FINAL FIX
+      backHome: "ہوم پر واپس",
+      makeAnotherPayment: "ایک اور ادائیگی کریں", // ✨ THE ACTUAL FINAL FIX
       details: {
         tenant: "کرایہ دار",
         email: "ای میل",
@@ -220,7 +223,8 @@ export const strings = {
         sent: "بھیجا گیا",
         pending: "زیر التواء",
         qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
-        backHome: "ہوم پر واپس", // ✨ THE FINAL FIX
+        backHome: "ہوم پر واپس",
+        makeAnotherPayment: "ایک اور ادائیگی کریں", // ✨ THE ACTUAL FINAL FIX
         details: {
             tenant: "کرایہ دار",
             email: "ای میل",
