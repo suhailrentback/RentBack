@@ -101,12 +101,13 @@ export const strings = {
       },
       properties: {
         title: "Properties",
+        subtitle: "Manage your properties and tenants", // ✨ FIX
         none: "No properties found.",
         tenants: "Tenants",
         expected: "Expected",
-        due: "Next Due", // ✨ FIX
-        status: "Status", // ✨ FIX
-        active: "Active", // ✨ FIX
+        due: "Next Due",
+        status: "Status",
+        active: "Active",
       },
     },
   },
@@ -205,12 +206,13 @@ export const strings = {
       },
       properties: {
         title: "جائیدادیں",
+        subtitle: "اپنی جائیدادوں اور کرایہ داروں کا نظم کریں", // ✨ FIX
         none: "کوئی جائیداد نہیں ملی۔",
         tenants: "کرایہ دار",
         expected: "متوقع",
-        due: "اگلی تاریخ", // ✨ FIX
-        status: "حیثیت", // ✨ FIX
-        active: "فعال", // ✨ FIX
+        due: "اگلی تاریخ",
+        status: "حیثیت",
+        active: "فعال",
       },
     },
   },
