@@ -1,100 +1,87 @@
-"use client";
+// app/landlord/page.tsx
+'use client';
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { strings, type Lang } from "@/lib/i18n";
-import { formatPKR } from "@/lib/demo";
+import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import MobileAppShell from '@/components/MobileAppShell';
+import { strings } from '@/lib/i18n';
+import { formatPKR } from '@/lib/demo';
 
-// --- Types used by this page (kept minimal so build stays happy)
-type Method = "RAAST" | "BANK" | "JAZZCASH";
+/**
+ * Minimal demo types (kept flexible for safety in builds)
+ */
+type Method = 'RAAST' | 'BANK' | 'JAZZCASH';
 type DemoPayment = {
   id: string;
-  createdAt: string;
-  tenant?: string;
+  createdAt: string;           // ISO
   property: string;
   amount: number;
-  method: Method;
-  status: "PENDING" | "SENT";
-  expected?: number; // optional: for discrepancy calc
+  method: Method | string;
+  status: 'PENDING' | 'SENT' | string;
 };
 
-// Safe localStorage read helpers
-function loadJSON<T>(key: string, fallback: T): T {
+/**
+ * Storage helpers
+ */
+const STORAGE_KEY = 'rb-payments';
+
+function loadPayments(): DemoPayment[] {
   try {
-    const raw = typeof window !== "undefined" ? localStorage.getItem(key) : null;
-    return raw ? (JSON.parse(raw) as T) : fallback;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr as DemoPayment[];
   } catch {
-    return fallback;
+    return [];
   }
 }
 
 export default function LandlordHomePage() {
-  // Language (en | ur)
-  const [lang, setLang] = useState<Lang>("en");
-  // Payments used to compute stats
+  // Cast i18n safely to avoid TypeScript property errors if keys were added recently.
+  const t = strings() as any;
+
   const [payments, setPayments] = useState<DemoPayment[]>([]);
 
-  // Load demo data from localStorage on mount
   useEffect(() => {
-    const initialLang = (typeof window !== "undefined"
-      ? (localStorage.getItem("rb:lang") as Lang | null)
-      : null) || "en";
-    setLang(initialLang);
-
-    const stored: DemoPayment[] = loadJSON<DemoPayment[]>("rb:payments", []);
-    setPayments(stored);
+    setPayments(loadPayments());
   }, []);
 
-  const t = strings[lang].landlord.home;
+  // Totals for the header cards
+  const collected30d = useMemo(() => {
+    const now = Date.now();
+    const THIRTY_D = 30 * 24 * 60 * 60 * 1000;
+    return payments
+      .filter(p => p.status === 'SENT' && now - new Date(p.createdAt).getTime() <= THIRTY_D)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [payments]);
 
-  // === Derived metrics ===
-  const {
-    collected30d,
-    pendingCount,
-    weeklySettled,
-    discrepancies,
-    last,
-  } = useMemo(() => {
-    const now = new Date();
-    const cutoff = new Date(now);
-    cutoff.setDate(cutoff.getDate() - 30);
+  const pendingCount = useMemo(
+    () => payments.filter(p => p.status === 'PENDING').length,
+    [payments]
+  );
 
-    let collected = 0;
-    let pending = 0;
-    let lastPayment: DemoPayment | undefined;
+  const weeklySettled = useMemo(() => {
+    // Demo “weekly settlement”: sum all SENT in the last 7 days
+    const now = Date.now();
+    const SEVEN_D = 7 * 24 * 60 * 60 * 1000;
+    const total = payments
+      .filter(p => p.status === 'SENT' && now - new Date(p.createdAt).getTime() <= SEVEN_D)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    return total || 0;
+  }, [payments]);
 
-    const sent = payments.filter((p) => p.status === "SENT");
-    for (const p of payments) {
-      const dt = new Date(p.createdAt);
-      if (p.status === "PENDING") pending++;
-      if (p.status === "SENT" && dt >= cutoff) collected += p.amount;
-      if (!lastPayment || new Date(p.createdAt) > new Date(lastPayment.createdAt)) {
-        lastPayment = p;
-      }
-    }
+  const discrepancies = useMemo(() => {
+    // Demo discrepancy rule: anything SENT with amount < 50,000 is “flagged”
+    return payments.filter(p => p.status === 'SENT' && Number(p.amount) < 50000).length;
+  }, [payments]);
 
-    // Discrepancies (paid < expected), if `expected` present; otherwise derive a soft rule: below 60,000 PKR
-    const disc = payments.filter((p) => {
-      if (typeof p.expected === "number") return p.amount < p.expected;
-      // soft heuristic just for demo
-      return p.amount > 0 && p.amount < 60000;
-    }).length;
-
-    // Simulated weekly settled total: last 7d SENT sum (purely to make the card look alive)
-    const cutoff7 = new Date(now);
-    cutoff7.setDate(cutoff7.getDate() - 7);
-    const weekly = sent
-      .filter((p) => new Date(p.createdAt) >= cutoff7)
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    return {
-      collected30d: collected,
-      pendingCount: pending,
-      weeklySettled: weekly,
-      discrepancies: disc,
-      last: lastPayment,
-    };
+  // Last payment (most recent by createdAt)
+  const last: DemoPayment | null = useMemo(() => {
+    if (!payments.length) return null;
+    return [...payments].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
   }, [payments]);
 
   return (
@@ -102,33 +89,138 @@ export default function LandlordHomePage() {
       <div className="p-4 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{t.title}</h1>
-          <span className="text-xs opacity-70">{t.welcome}</span>
+          <h1 className="text-xl font-semibold">
+            {t?.landlord?.home?.title ?? 'Landlord Dashboard'}
+          </h1>
+          <span className="text-xs opacity-70">
+            {t?.landlord?.home?.welcome ?? 'Overview of payouts, ledger and properties'}
+          </span>
         </div>
 
-        {/* KPI Cards */}
+        {/* Summary cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Rent collected (30 days) */}
+          {/* Collected (30d) */}
           <div className="rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br from-emerald-600 to-emerald-500 text-white p-5">
-            <div className="text-xs opacity-90">{t.rentCollected}</div>
+            <div className="text-xs opacity-90">
+              {t?.landlord?.home?.rentCollected ?? 'Rent collected (30 days)'}
+            </div>
             <div className="mt-2 text-2xl font-semibold tracking-wide">
               {formatPKR(collected30d)}
             </div>
           </div>
 
-          {/* Pending confirmation count */}
+          {/* Pending count */}
           <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-            <div className="text-xs opacity-70">{t.pendingCount}</div>
-            <div className="mt-2 text-2xl font-semibold">{pendingCount}</div>
+            <div className="text-xs opacity-70">
+              {t?.landlord?.home?.pendingCount ?? 'Payments pending confirmation'}
+            </div>
+            <div className="mt-2 text-2xl font-semibold">
+              {pendingCount}
+            </div>
           </div>
         </section>
 
-        {/* Payouts (simulated weekly) */}
-        <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium">{t.payouts.title}</div>
-            <div className="text-xs opacity-70">
-              {t.payouts.next}: {t.payouts.day}
+        {/* Payouts + Discrepancies */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Payouts card */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-medium">
+                {t?.landlord?.home?.payouts?.title ?? 'Payouts'}
+              </div>
+              <div className="text-xs opacity-70">
+                {(t?.landlord?.home?.payouts?.next ?? 'Next settlement') + ': '}
+                {t?.landlord?.home?.payouts?.day ?? 'Friday'}
+              </div>
+            </div>
+            <div className="mt-2 text-2xl font-semibold">
+              {weeklySettled
+                ? formatPKR(weeklySettled)
+                : <span className="opacity-70">{t?.landlord?.home?.payouts?.none ?? 'None'}</span>}
+            </div>
+            <div className="mt-3">
+              <Link
+                href="/landlord/payouts"
+                className="text-xs px-3 py-1 rounded-lg bg-black/80 text-white hover:bg-black"
+              >
+                {t?.landlord?.home?.payoutsCard ?? 'Payouts'}
+              </Link>
             </div>
           </div>
-          <div className="mt-2
+
+          {/* Discrepancies card */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+            <div className="text-sm font-medium">
+              {t?.landlord?.home?.discrepancies?.title ?? 'Discrepancies'}
+            </div>
+            <div className="text-xs opacity-70">
+              {t?.landlord?.home?.discrepancies?.subtitle ?? 'Payments below due amount'}
+            </div>
+            <div className="mt-2 text-2xl font-semibold">{discrepancies}</div>
+            <div className="mt-3">
+              <Link
+                href="/landlord/discrepancies"
+                className="text-xs px-3 py-1 rounded-lg bg-black/80 text-white hover:bg-black"
+              >
+                {t?.landlord?.home?.discrepanciesCard ?? 'Discrepancies'}
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Last payment + quick actions */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">
+              {t?.landlord?.home?.lastPayment ?? 'Last payment'}
+            </div>
+            {last ? (
+              <Link
+                href={`/tenant/receipt/${last.id}`}
+                className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
+                {t?.landlord?.home?.viewReceipt ?? 'View receipt'}
+              </Link>
+            ) : null}
+          </div>
+
+          <div className="mt-3 text-sm">
+            {!last ? (
+              <div className="opacity-70">
+                {t?.landlord?.home?.emptyLastPayment ?? 'No payments yet'}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-medium">{last.property}</div>
+                  <div className="text-xs opacity-70">
+                    {new Date(last.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{formatPKR(last.amount)}</div>
+                  <div className="text-xs opacity-70">{String(last.method || 'RAAST')}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <Link
+              href="/landlord/ledger"
+              className="text-xs px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              {t?.landlord?.home?.ledgerCard ?? 'Ledger'}
+            </Link>
+            <Link
+              href="/landlord/properties"
+              className="text-xs px-3 py-2 rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+            >
+              {t?.landlord?.home?.propertiesCard ?? 'Properties'}
+            </Link>
+          </div>
+        </section>
+      </div>
+    </MobileAppShell>
+  );
+}
