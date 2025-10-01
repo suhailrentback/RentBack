@@ -85,7 +85,7 @@ export const strings = {
       },
       profile: {
         title: "Profile",
-        signOut: "Sign out (demo)", // ✨ FIX: Corrected this line
+        signOut: "Sign out (demo)",
         privacy: "Privacy Policy",
         terms: "Terms of Service",
         needHelp: "Need Help?",
@@ -157,3 +157,55 @@ export const strings = {
         sent: "بھیجا گیا",
         pending: "زیر التواء",
         warnBelowDue: "رقم واجب الادا رقم سے کم ہے۔",
+        receipt: "رسید",
+        print: "پرنٹ کریں",
+      },
+      receipt: {
+        title: "ادائیگی کی رسید",
+        demoBadge: "ڈیمو: حقیقی ادائیگی نہیں",
+        tenant: "کرایہ دار",
+        property: "پراپرٹی",
+        amount: "رقم",
+        method: "طریقہ",
+        date: "تاریخ",
+        raastRef: "راست حوالہ",
+        print: "پرنٹ / محفوظ کریں",
+      },
+      rewards: {
+        title: "انعامات",
+        balance: "موجودہ بیلنس",
+        redeem: "فوری چھڑائیں",
+        activity: "حالیہ سرگرمی",
+        earned: "کمائے",
+        redeemed: "چھڑائے",
+        voucherCode: "واؤچر کوڈ",
+        progress: {
+          toGold: "آپ گولڈ ٹائر سے {{pts}} پوائنٹس دور ہیں",
+        },
+        empty: "پوائنٹس کمانا شروع کرنے کے لیے کرایہ کی ادائیگی کریں۔",
+      },
+      profile: {
+        title: "پروفائل",
+        signOut: "سائن آؤٹ (ڈیمو)",
+        privacy: "رازداری کی پالیسی",
+        terms: "سروس کی شرائط",
+        needHelp: "مدد چاہیے؟",
+      },
+    },
+    landlord: {
+      home: {
+        title: "مکان مالک کا ڈیش بورڈ",
+        welcome: "ادائیگیوں، لیجر اور جائیدادوں کا جائزہ",
+        quickLinks: {
+          ledger: "لیجر دیکھیں",
+        },
+      },
+      properties: {
+        title: "جائیدادیں",
+        none: "کوئی جائیداد نہیں ملی۔",
+        tenants: "کرایہ دار",
+        expected: "متوقع",
+      },
+    },
+  },
+};
