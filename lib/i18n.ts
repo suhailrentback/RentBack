@@ -33,7 +33,9 @@ export const strings = {
       qrLabel: "Scan to verify (demo)",
       backHome: "Back to Home",
       makeAnotherPayment: "Make Another Payment",
-      rewardsLinkLabel: "Claim Rewards", // ✨ THE ABSOLUTE FINAL FIX
+      rewardsLinkLabel: "Claim Rewards",
+      notFoundTitle: "Receipt Not Found", // ✨ THE FINAL, FINAL FIX
+      notFoundBody: "Could not find a receipt with that ID.", // ✨ THE FINAL, FINAL FIX
       details: {
         tenant: "Tenant",
         email: "Email",
@@ -90,7 +92,9 @@ export const strings = {
         qrLabel: "Scan to verify (demo)",
         backHome: "Back to Home",
         makeAnotherPayment: "Make Another Payment",
-        rewardsLinkLabel: "Claim Rewards", // ✨ THE ABSOLUTE FINAL FIX
+        rewardsLinkLabel: "Claim Rewards",
+        notFoundTitle: "Receipt Not Found", // ✨ THE FINAL, FINAL FIX
+        notFoundBody: "Could not find a receipt with that ID.", // ✨ THE FINAL, FINAL FIX
         details: {
             tenant: "Tenant",
             email: "Email",
@@ -171,7 +175,9 @@ export const strings = {
       qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
       backHome: "ہوم پر واپس",
       makeAnotherPayment: "ایک اور ادائیگی کریں",
-      rewardsLinkLabel: "انعامات کا دعوی کریں", // ✨ THE ABSOLUTE FINAL FIX
+      rewardsLinkLabel: "انعامات کا دعوی کریں",
+      notFoundTitle: "رسید نہیں ملی", // ✨ THE FINAL, FINAL FIX
+      notFoundBody: "اس ID کے ساتھ کوئی رسید نہیں مل سکی۔", // ✨ THE FINAL, FINAL FIX
       details: {
         tenant: "کرایہ دار",
         email: "ای میل",
@@ -228,7 +234,9 @@ export const strings = {
         qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
         backHome: "ہوم پر واپس",
         makeAnotherPayment: "ایک اور ادائیگی کریں",
-        rewardsLinkLabel: "انعامات کا دعوی کریں", // ✨ THE ABSOLUTE FINAL FIX
+        rewardsLinkLabel: "انعامات کا دعوی کریں",
+        notFoundTitle: "رسید نہیں ملی", // ✨ THE FINAL, FINAL FIX
+        notFoundBody: "اس ID کے ساتھ کوئی رسید نہیں مل سکی۔", // ✨ THE FINAL, FINAL FIX
         details: {
             tenant: "کرایہ دار",
             email: "ای میل",
