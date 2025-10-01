@@ -1,36 +1,47 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import { strings, type Lang } from "@/lib/i18n";
-import { useState, useEffect } from "react";
-import { loadPayments, loadRewards, formatPKR } from "@/lib/demo";
+import {
+  formatPKR,
+  loadPayments,
+  loadRewards,
+  type DemoPayment,
+} from "@/lib/demo";
 import Link from "next/link";
 
-type Method = "RAAST" | "BANK" | "JAZZCASH";
-type Status = "PENDING" | "SENT";
-type DemoPayment = {
-  id: string;
-  createdAt: string;
-  property: string;
-  amount: number;
-  method: Method;
-  status: Status;
-};
-
 export default function TenantHomePage() {
-  const lang: Lang = "en"; // keep simple to avoid i18n type noise; wire cookie later
+  // Later: wire these from a global context or cookie
+  const lang: Lang = "en";
   const t = strings[lang];
 
   const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [rewards, setRewards] = useState<number>(0);
+  const [rewards, setRewards] = useState<number>(0); // store just the numeric balance
 
   useEffect(() => {
     setPayments(loadPayments());
-    setRewards(loadRewards());
+    const r = loadRewards();
+    setRewards(r.balance); // ✅ FIX: loadRewards() returns object; we store only .balance
   }, []);
 
-  const last = payments.find(p => p.status === "SENT");
-  const duePKR = 65000;
+  const last = useMemo(
+    () => payments.find((p) => p.status === "SENT"),
+    [payments]
+  );
+
+  const nextDue = useMemo(() => {
+    // Demo logic: assume one property, due next month same day
+    const today = new Date();
+    const due = new Date(today.getFullYear(), today.getMonth() + 1, 5, 0, 0, 0);
+    return due.toLocaleDateString(lang === "ur" ? "ur-PK" : "en-PK", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  }, [lang]);
+
+  const suggestedAmount = 65000; // demo default PKR
 
   return (
     <MobileAppShell>
@@ -39,86 +50,103 @@ export default function TenantHomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold">{t.tenant.home.title}</h1>
-            <p className="text-xs opacity-70">{t.tenant.home.subtitle}</p>
+            <div className="text-xs opacity-70">{t.tenant.home.subtitle}</div>
+          </div>
+          <div className="text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">
+            {t.demo}
           </div>
         </div>
 
-        {/* Main card: current rent due */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-          <div className="text-xs opacity-70">{t.tenant.home.rentDue}</div>
-          <div className="mt-1 text-2xl font-semibold">{formatPKR(duePKR)}</div>
-          <div className="mt-3">
-            <Link
-              href="/tenant/pay"
-              className="inline-flex items-center gap-2 rounded-xl px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-            >
-              {t.tenant.home.quickPay}
-            </Link>
+        {/* Main card: Rent due */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br from-emerald-600 to-emerald-500 text-white p-5">
+          <div className="text-xs opacity-90">{t.tenant.home.rentDue}</div>
+          <div className="mt-1 text-2xl font-semibold tracking-wide">
+            {formatPKR(suggestedAmount)}
           </div>
+          <div className="mt-1 text-xs opacity-90">Next due: {nextDue}</div>
+
+          <Link
+            href="/tenant/pay"
+            className="mt-4 inline-flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur transition"
+          >
+            {t.tenant.home.quickPay}
+          </Link>
         </section>
 
-        {/* Secondary: rewards + last payment */}
+        {/* Secondary cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-gradient-to-br from-emerald-600 to-emerald-500 text-white">
-            <div className="text-xs opacity-90">{t.tenant.home.rewardsBalance}</div>
-            <div className="mt-1 text-2xl font-semibold">{rewards.toLocaleString()} pts</div>
+          {/* Rewards */}
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+            <div className="text-xs opacity-70">{t.tenant.home.rewardsBalance}</div>
+            <div className="mt-2 text-2xl font-semibold tabular-nums">
+              {rewards.toLocaleString()}
+            </div>
+            <Link
+              href="/tenant/rewards"
+              className="mt-3 inline-flex items-center text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {t.tenant.home.shortcuts.rewards}
+            </Link>
           </div>
 
+          {/* Last payment */}
           <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
             <div className="text-xs opacity-70">{t.tenant.home.lastPayment}</div>
             {last ? (
               <div className="mt-2 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{last.property}</div>
+                <div className="text-sm">
+                  <div className="font-medium">{formatPKR(last.amount)}</div>
                   <div className="text-xs opacity-70">
-                    {new Date(last.createdAt).toLocaleString()} · {last.method}
+                    {new Date(last.createdAt).toLocaleDateString(
+                      lang === "ur" ? "ur-PK" : "en-PK",
+                      { year: "numeric", month: "short", day: "2-digit" }
+                    )}
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold">{formatPKR(last.amount)}</div>
-                  <Link
-                    href={`/tenant/receipt/${last.id}`}
-                    className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    {t.tenant.home.viewReceipt}
-                  </Link>
-                </div>
+                <Link
+                  href={`/tenant/receipt/${last.id}`}
+                  className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  {t.tenant.home.viewReceipt}
+                </Link>
               </div>
             ) : (
-              <div className="mt-2 text-sm opacity-70">
-                {/* no dedicated empty key in your i18n for this; keeping simple */}
-                No past payments yet.
+              <div className="mt-2 text-xs opacity-70">
+                {/* If no SENT payment in demo yet */}
+                {t.tenant.pay.subtitle}
               </div>
             )}
           </div>
         </section>
 
         {/* Shortcuts */}
-        <section className="grid grid-cols-4 gap-2">
-          <Link
-            href="/tenant/pay"
-            className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs bg-white dark:bg-white/5"
-          >
-            {t.tenant.home.shortcuts.pay}
-          </Link>
-          <Link
-            href="/tenant/rewards"
-            className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs bg-white dark:bg-white/5"
-          >
-            {t.tenant.home.shortcuts.rewards}
-          </Link>
-          <Link
-            href="/tenant/receipt/last"
-            className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs bg-white dark:bg-white/5"
-          >
-            {t.tenant.home.shortcuts.receipts}
-          </Link>
-          <a
-            href="mailto:help@rentback.app"
-            className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs bg-white dark:bg-white/5"
-          >
-            {t.tenant.home.shortcuts.support}
-          </a>
+        <section>
+          <div className="grid grid-cols-4 gap-3">
+            <Link
+              href="/tenant/pay"
+              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+            >
+              {t.tenant.home.shortcuts.pay}
+            </Link>
+            <Link
+              href="/tenant/rewards"
+              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+            >
+              {t.tenant.home.shortcuts.rewards}
+            </Link>
+            <Link
+              href="/tenant/receipts"
+              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+            >
+              {t.tenant.home.shortcuts.receipts}
+            </Link>
+            <a
+              href="mailto:help@rentback.app"
+              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+            >
+              {t.tenant.home.shortcuts.support}
+            </a>
+          </div>
         </section>
       </div>
     </MobileAppShell>
