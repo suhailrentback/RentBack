@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { ListSkeleton, CardSkeleton } from "@/components/Skeletons";
+import { ListSkeleton } from "@/components/Skeletons"; // ✅ only use ListSkeleton
 import { strings, type Lang } from "@/lib/i18n";
 import {
   formatPKR,
@@ -73,7 +73,6 @@ export default function TenantPayPage() {
     setPayments(next);
     savePayments(next);
 
-    // Reset debounce after a tick
     setTimeout(() => {
       creating.current = false;
     }, 300);
@@ -97,7 +96,6 @@ export default function TenantPayPage() {
       const updated = {
         ...r,
         balance: (r.balance || 0) + add,
-        // keep a small activity entry
         activity: [
           { type: "EARN", pts: add, at: new Date().toISOString(), ref: id },
           ...(r.activity || []),
@@ -241,7 +239,7 @@ export default function TenantPayPage() {
         <section>
           <div className="text-xs opacity-70 mb-2">Sent</div>
           {loading ? (
-            <CardSkeleton />
+            <ListSkeleton />
           ) : sent.length === 0 ? (
             <div className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-xs opacity-70">
               No sent payments yet.
