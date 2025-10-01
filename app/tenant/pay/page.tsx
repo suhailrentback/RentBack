@@ -1,12 +1,11 @@
 // app/tenant/pay/page.tsx
 "use client";
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { ListSkeleton } from "@/components/Skeletons";
+import EmptyState from "@/components/EmptyState";
+import { CardSkel } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
 import {
-  formatPKR,
   loadPayments,
   savePayments,
   loadRewards,
@@ -14,271 +13,208 @@ import {
   type DemoPayment,
   type Method,
   type RewardsState,
-  type RewardActivity,
+  formatPKR,
 } from "@/lib/demo";
-import Link from "next/link";
 
-type Status = "PENDING" | "SENT";
+type FormState = {
+  property: string;
+  amount: string; // keep as string for input
+  method: Method;
+};
+
+const METHODS: Method[] = ["RAAST", "BANK", "JAZZCASH"];
 
 export default function TenantPayPage() {
-  const [lang] = useState<Lang>("en");
+  const lang: Lang = typeof window !== "undefined" && localStorage.getItem("demo-lang") === "ur" ? "ur" : "en";
   const t = strings[lang];
 
   const [loading, setLoading] = useState(true);
   const [payments, setPayments] = useState<DemoPayment[]>([]);
-
-  const [property, setProperty] = useState("Gulshan 12A — Apt 4B");
-  const [amount, setAmount] = useState<number>(65000);
-  const [method, setMethod] = useState<Method>("RAAST");
+  const [form, setForm] = useState<FormState>({ property: "", amount: "", method: "RAAST" });
   const [error, setError] = useState<string | null>(null);
-
-  const creating = useRef(false);
-  const marking = useRef<string | null>(null);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  const busy = useRef(false);
 
   useEffect(() => {
     setLoading(true);
-    const p = loadPayments();
-    setPayments(p);
-    const last = p[0];
-    if (last) {
-      setProperty(last.property);
-      setAmount(last.amount);
-      setMethod(last.method);
-    }
+    setPayments(loadPayments());
     setLoading(false);
   }, []);
 
-  const suggestedAmount = 65000;
-  const warnBelowDue = amount < suggestedAmount;
+  const dueHint = useMemo(() => {
+    const today = new Date();
+    const due = new Date(today.getFullYear(), today.getMonth() + 1, 5, 0, 0, 0);
+    return due.toLocaleDateString(lang === "ur" ? "ur-PK" : "en-PK", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+  }, [lang]);
 
-  function createPayment() {
-    if (creating.current) return;
+  const validate = (): boolean => {
+    if (!form.property.trim()) {
+      setError("Please select a property.");
+      return false;
+    }
+    const amt = Number(form.amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      setError("Enter a valid amount.");
+      return false;
+    }
     setError(null);
+    return true;
+  };
 
-    if (!property) return setError("Please select a property.");
-    if (!amount || amount <= 0) return setError("Enter a valid amount.");
-    if (!method) return setError("Select a payment method.");
+  const createPayment = () => {
+    if (busy.current) return;
+    if (!validate()) return;
+    busy.current = true;
 
-    creating.current = true;
-
-    const newP: DemoPayment = {
-      id: crypto.randomUUID(),
+    const amt = Number(form.amount);
+    const id = Math.random().toString(36).slice(2, 9);
+    const next: DemoPayment = {
+      id,
       createdAt: new Date().toISOString(),
-      property,
-      amount: Math.round(amount),
-      method,
+      property: form.property,
+      amount: amt,
+      method: form.method,
       status: "PENDING",
     };
 
-    const next = [newP, ...payments];
-    setPayments(next);
+    const updated = [next, ...loadPayments()];
+    savePayments(updated);
+    setPayments(updated);
+    setCreatedId(id);
+    setTimeout(() => (busy.current = false), 400); // debounce window
+  };
+
+  const markSent = () => {
+    if (!createdId) return;
+    const all = loadPayments();
+    const next = all.map((p) => (p.id === createdId ? { ...p, status: "SENT" } : p));
     savePayments(next);
-
-    setTimeout(() => {
-      creating.current = false;
-    }, 300);
-  }
-
-  function markSent(id: string) {
-    if (marking.current === id) return;
-    marking.current = id;
-
-    // Update payment status
-    const next = payments.map((p) =>
-      p.id === id ? { ...p, status: "SENT" as Status } : p
-    );
     setPayments(next);
-    savePayments(next);
 
-    // Credit +1% rewards on SENT — align to RewardActivity (no `ref`)
-    const credited = next.find((p) => p.id === id);
-    if (credited) {
-      const current: RewardsState = loadRewards();
-      const add = Math.floor(credited.amount * 0.01);
-
-      const earnEntry: RewardActivity = {
-        id: crypto.randomUUID(),
-        type: "EARN",
+    // +1% rewards credit
+    const just = next.find((p) => p.id === createdId);
+    if (just && just.status === "SENT") {
+      const add = Math.round(just.amount * 0.01);
+      const rewards = loadRewards();
+      const entry = {
+        id: Math.random().toString(36).slice(2, 9),
+        type: "EARN" as const,
         points: add,
         createdAt: new Date().toISOString(),
       };
-
       const updated: RewardsState = {
-        balance: (current.balance || 0) + add,
-        activity: [earnEntry, ...(current.activity || [])],
+        balance: rewards.balance + add,
+        activity: [entry, ...rewards.activity],
       };
-
       saveRewards(updated);
     }
-
-    setTimeout(() => {
-      marking.current = null;
-    }, 300);
-  }
-
-  const pending = useMemo(
-    () => payments.filter((p) => p.status === "PENDING"),
-    [payments]
-  );
-  const sent = useMemo(
-    () => payments.filter((p) => p.status === "SENT"),
-    [payments]
-  );
+  };
 
   return (
     <MobileAppShell>
-      <div className="p-4 space-y-5">
-        {/* Header */}
+      <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">{t.tenant.pay.title}</h1>
-            <div className="text-xs opacity-70">{t.tenant.pay.subtitle}</div>
-          </div>
-          <div className="text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">
-            {t.demo}
-          </div>
+          <h1 className="text-xl font-semibold">{t.tenant.pay.title}</h1>
+          <span className="text-xs opacity-70">
+            Due around: <strong>{dueHint}</strong>
+          </span>
         </div>
 
-        {/* Form */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
-          <div className="grid gap-3">
-            <div>
-              <label className="block text-xs opacity-70 mb-1">
-                {t.tenant.pay.property}
-              </label>
-              <select
-                value={property}
-                onChange={(e) => setProperty(e.target.value)}
-                className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-2 py-2 text-sm"
-              >
-                <option>Gulshan 12A — Apt 4B</option>
-                <option>Clifton Block 5 — House 27</option>
-              </select>
-            </div>
+        {loading ? (
+          <CardSkel />
+        ) : payments.length === 0 ? (
+          <EmptyState
+            title={t.tenant.pay.subtitle}
+            body="Create a payment and mark as sent to generate a receipt."
+            ctaLabel={t.tenant.home.quickPay}
+            ctaHref="#pay-form"
+          />
+        ) : null}
 
-            <div>
-              <label className="block text-xs opacity-70 mb-1">
-                {t.tenant.pay.amount}
-              </label>
-              <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(parseInt(e.target.value || "0", 10))}
-                className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-2 py-2 text-sm"
-                placeholder="65000"
-              />
-              {warnBelowDue && (
-                <div className="mt-1 text-xs text-amber-600">
-                  {t.tenant.pay.warnBelowDue}
-                </div>
-              )}
-            </div>
+        <section id="pay-form" className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5 space-y-4">
+          <div>
+            <label className="text-sm">{t.tenant.pay.property}</label>
+            <select
+              value={form.property}
+              onChange={(e) => setForm((f) => ({ ...f, property: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2"
+            >
+              <option value="">Select…</option>
+              <option value="Apt 12 — Park View">Apt 12 — Park View</option>
+              <option value="House 5 — Zamzama">House 5 — Zamzama</option>
+              <option value="Unit B — Gulshan">Unit B — Gulshan</option>
+            </select>
+          </div>
 
-            <div>
-              <label className="block text-xs opacity-70 mb-1">
-                {t.tenant.pay.method}
-              </label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value as Method)}
-                className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-2 py-2 text-sm"
-              >
-                <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
-                <option value="BANK">{t.tenant.pay.methods.BANK}</option>
-                <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
-              </select>
+          <div>
+            <label className="text-sm">{t.tenant.pay.amount}</label>
+            <input
+              inputMode="numeric"
+              value={form.amount}
+              onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2"
+              placeholder="50000"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm">{t.tenant.pay.method}</label>
+            <div className="mt-2 flex gap-2">
+              {METHODS.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setForm((f) => ({ ...f, method: m }))}
+                  className={`px-3 py-1 rounded-lg border text-sm ${
+                    form.method === m
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "border-black/10 dark:border-white/10 bg-white dark:bg-white/5"
+                  }`}
+                >
+                  {t.tenant.pay.methods[m]}
+                </button>
+              ))}
             </div>
           </div>
 
-          {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
+          {error ? <div className="text-sm text-red-600">{error}</div> : null}
 
-          <button
-            onClick={createPayment}
-            className="mt-3 inline-flex items-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2"
-          >
-            {t.tenant.pay.create}
-          </button>
-        </section>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={createPayment}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              disabled={busy.current}
+            >
+              {t.tenant.pay.create}
+            </button>
+            <button
+              onClick={markSent}
+              className="px-4 py-2 rounded-lg border border-emerald-600 text-emerald-700 dark:text-emerald-300 text-sm"
+              disabled={!createdId}
+              title={createdId ? "" : "Create a payment first"}
+            >
+              {t.tenant.pay.markSent}
+            </button>
+          </div>
 
-        {/* Pending */}
-        <section>
-          <div className="text-xs opacity-70 mb-2">Pending</div>
-          {loading ? (
-            <ListSkeleton />
-          ) : pending.length === 0 ? (
-            <div className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-xs opacity-70">
-              No pending payments.
+          {createdId ? (
+            <div className="text-xs opacity-80">
+              Created payment <strong>{createdId}</strong>. After “{t.tenant.pay.markSent}”, you’ll see +1% rewards and a receipt.
             </div>
-          ) : (
-            <ul className="space-y-2">
-              {pending.map((p) => (
-                <li
-                  key={p.id}
-                  className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-medium">{p.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(p.createdAt).toLocaleString(
-                        lang === "ur" ? "ur-PK" : "en-PK"
-                      )}{" "}
-                      • {p.method}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold">{formatPKR(p.amount)}</div>
-                    <button
-                      onClick={() => markSent(p.id)}
-                      className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      {t.tenant.pay.markSent}
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+          ) : null}
         </section>
 
-        {/* Sent */}
-        <section>
-          <div className="text-xs opacity-70 mb-2">Sent</div>
-          {loading ? (
-            <ListSkeleton />
-          ) : sent.length === 0 ? (
-            <div className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-xs opacity-70">
-              No sent payments yet.
+        {payments.length > 0 ? (
+          <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
+            <div className="text-sm font-medium">{t.tenant.home.lastPayment}</div>
+            <div className="mt-2 text-sm opacity-80">
+              {payments[0].property} — {formatPKR(payments[0].amount)} — {payments[0].status}
             </div>
-          ) : (
-            <ul className="space-y-2">
-              {sent.map((p) => (
-                <li
-                  key={p.id}
-                  className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
-                >
-                  <div>
-                    <div className="font-medium">{p.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(p.createdAt).toLocaleString(
-                        lang === "ur" ? "ur-PK" : "en-PK"
-                      )}{" "}
-                      • {p.method}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-semibold">{formatPKR(p.amount)}</div>
-                    <Link
-                      href={`/tenant/receipt/${p.id}`}
-                      className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      {t.tenant.pay.receipt}
-                    </Link>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+          </section>
+        ) : null}
       </div>
     </MobileAppShell>
   );
