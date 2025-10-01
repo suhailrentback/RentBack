@@ -1,116 +1,144 @@
+// app/landlord/properties/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import EmptyState from "@/components/EmptyState";
 import { ListSkeleton } from "@/components/Skeletons";
-import { strings, dirFor, type Lang } from "@/lib/i18n";
-import { formatPKR } from "@/lib/demo";
+import { strings, type Lang } from "@/lib/i18n";
 
-type DemoProperty = {
+// Demo rows
+type Row = {
+  id: string;
   name: string;
   tenant: string;
-  rentPKR: number;
+  expected: number;
   nextDueISO: string;
-  active: boolean;
+  status: "ACTIVE" | "INACTIVE";
 };
 
-function getLang(): Lang {
-  try {
-    const l = localStorage.getItem("rb-lang");
-    if (l === "ur" || l === "en") return l;
-  } catch {}
-  return (process.env.NEXT_PUBLIC_DEFAULT_LANG as Lang) || "en";
-}
+const DEMO: Row[] = [
+  {
+    id: "r1",
+    name: "Gulshan 12A — Apt 4B",
+    tenant: "Ali Khan",
+    expected: 65000,
+    nextDueISO: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 5).toISOString(),
+    status: "ACTIVE",
+  },
+  {
+    id: "r2",
+    name: "Clifton Block 5 — House 27",
+    tenant: "Sara Ahmed",
+    expected: 120000,
+    nextDueISO: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 10).toISOString(),
+    status: "ACTIVE",
+  },
+];
 
-function fallbackProperties(): DemoProperty[] {
-  const today = new Date();
-  const nextDue = new Date(today.getFullYear(), today.getMonth(), 28).toISOString();
-  return [
-    { name: "Apartment 12, DHA Phase 6", tenant: "Demo Tenant", rentPKR: 65000, nextDueISO: nextDue, active: true },
-    { name: "Shop 4, MM Alam Road", tenant: "Demo Tenant 2", rentPKR: 85000, nextDueISO: nextDue, active: true },
-  ];
-}
-
-function loadProperties(): DemoProperty[] {
-  try {
-    const raw = localStorage.getItem("rb-properties");
-    if (!raw) return fallbackProperties();
-    const arr = JSON.parse(raw);
-    if (!Array.isArray(arr) || !arr.length) return fallbackProperties();
-    return arr;
-  } catch {
-    return fallbackProperties();
-  }
+function downloadCSV(filename: string, rows: Array<Record<string, any>>) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const escape = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+  const csv = [
+    headers.join(","),
+    ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
+  ].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function LandlordPropertiesPage() {
-  const lang = getLang();
+  const [lang] = useState<Lang>("en");
   const t = strings[lang];
-  const dir = dirFor(lang);
 
   const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<DemoProperty[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     setLoading(true);
-    const props = loadProperties();
-    setRows(props);
-    setTimeout(() => setLoading(false), 300);
+    setTimeout(() => {
+      setRows(DEMO);
+      setLoading(false);
+    }, 200);
   }, []);
 
-  const content = useMemo(() => {
-    if (loading) return <ListSkeleton rows={4} />;
-    if (!rows.length) {
-      return (
-        <EmptyState
-          title={t.landlord.properties.title}
-          body={t.landlord.properties.none}
-          ctaLabel={t.landlord.home.quickLinks.ledger}
-          ctaHref="/landlord/ledger"
-        />
-      );
-    }
-    return (
-      <div className="space-y-3">
-        {rows.map((r, idx) => (
-          <div key={idx} className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-medium">{r.name}</div>
-                <div className="text-xs opacity-70">
-                  {t.landlord.properties.tenants}: {r.tenant}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs opacity-70">{t.landlord.properties.expected}</div>
-                <div className="font-semibold">{formatPKR(r.rentPKR)}</div>
-              </div>
-            </div>
-            <div className="mt-2 flex items-center justify-between text-xs opacity-80">
-              <div>
-                {t.landlord.properties.due}: {new Date(r.nextDueISO).toLocaleDateString()}
-              </div>
-              <div>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-600 text-white">{t.landlord.properties.status}: {t.landlord.properties.active}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, rows, lang]);
+  const exportCSV = () => {
+    const out = rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      tenant: r.tenant,
+      expected: r.expected,
+      nextDue: new Date(r.nextDueISO).toISOString(),
+      status: r.status,
+    }));
+    downloadCSV("landlord-properties.csv", out);
+  };
 
   return (
     <MobileAppShell>
-      <main className="p-4 space-y-4" style={{ direction: dir }}>
-        <div>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">{t.landlord.properties.title}</h1>
-          <p className="text-xs opacity-70">{t.landlord.properties.subtitle}</p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={exportCSV}
+              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+            >
+              Export CSV
+            </button>
+            <div className="text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">
+              {t.demo}
+            </div>
+          </div>
         </div>
-        {content}
-      </main>
+
+        <div className="text-xs opacity-70">{t.landlord.properties.subtitle}</div>
+
+        {loading ? (
+          <ListSkeleton />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            title={t.landlord.properties.title}
+            body={t.landlord.properties.none}
+            ctaLabel={t.landlord.home.quickLinks.ledger}
+            ctaHref="/landlord/ledger"
+          />
+        ) : (
+          <ul className="space-y-2">
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
+              >
+                <div>
+                  <div className="font-medium">{r.name}</div>
+                  <div className="text-xs opacity-70">
+                    {t.landlord.properties.tenants}: {r.tenant}
+                  </div>
+                </div>
+                <div className="text-right text-xs">
+                  <div>
+                    {t.landlord.properties.expected}: {r.expected.toLocaleString()} PKR
+                  </div>
+                  <div className="opacity-70">
+                    {t.landlord.properties.due}:{" "}
+                    {new Date(r.nextDueISO).toLocaleDateString(
+                      lang === "ur" ? "ur-PK" : "en-PK",
+                      { year: "numeric", month: "short", day: "2-digit" }
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </MobileAppShell>
   );
 }
