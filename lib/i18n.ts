@@ -85,4 +85,75 @@ export const strings = {
       },
       profile: {
         title: "Profile",
-        signOut: "
+        signOut: "Sign out (demo)", // ✨ FIX: Corrected this line
+        privacy: "Privacy Policy",
+        terms: "Terms of Service",
+        needHelp: "Need Help?",
+      },
+    },
+    landlord: {
+      home: {
+        title: "Landlord Dashboard",
+        welcome: "Overview of payouts, ledger and properties",
+        quickLinks: {
+          ledger: "View Ledger",
+        },
+      },
+      properties: {
+        title: "Properties",
+        none: "No properties found.",
+        tenants: "Tenants",
+        expected: "Expected",
+      },
+    },
+  },
+  ur: {
+    app: "رينٹ بیک",
+    demo: "ڈیمو",
+    needHelp: "مدد چاہیے؟",
+    support: "سپورٹ",
+    nav: { home: "ہوم" },
+    bottom: {
+      home: "ہوم",
+      pay: "ادائیگی",
+      rewards: "انعامات",
+      profile: "پروفائل",
+    },
+    toggles: {
+      dark: "ڈارک",
+      light: "لائٹ",
+      urdu: "اردو",
+      english: "English",
+    },
+    tenant: {
+      home: {
+        title: "ڈیش بورڈ",
+        subtitle: "آپ کا کرایہ، انعامات اور رسیدیں ایک نظر میں",
+        rentDue: "موجودہ کرایہ",
+        quickPay: "ابھی ادائیگی کریں",
+        rewardsBalance: "انعامات کا بیلنس",
+        lastPayment: "آخری ادائیگی",
+        viewReceipt: "رسید دیکھیں",
+        shortcuts: {
+          pay: "کرایہ ادا کریں",
+          rewards: "انعامات",
+          receipts: "رسیدیں",
+          support: "سپورٹ",
+        },
+      },
+      pay: {
+        title: "کرایہ ادا کریں",
+        subtitle: "ادائیگی بنائیں اور بھیجا ہوا نشان زد کریں",
+        property: "پراپرٹی",
+        amount: "رقم (PKR)",
+        method: "ادائیگی کا طریقہ",
+        methods: {
+          RAAST: "راست (ڈیمو)",
+          BANK: "بینک ٹرانسفر (ڈیمو)",
+          JAZZCASH: "جاز کیش (ڈیمو)",
+        },
+        create: "ادائیگی بنائیں",
+        markSent: "بھیجا ہوا نشان زد کریں",
+        sent: "بھیجا گیا",
+        pending: "زیر التواء",
+        warnBelowDue: "رقم واجب الادا رقم سے کم ہے۔",
