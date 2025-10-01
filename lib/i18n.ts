@@ -1,4 +1,4 @@
- // lib/i18n.ts
+// lib/i18n.ts
 
 export type Lang = "en" | "ur";
 
@@ -87,6 +87,8 @@ export const strings = {
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
+        // ⬇️ NEW — this is what your page needs
+        rentCollected: "Rent collected (30 days)",
       },
 
       ledger: {
@@ -228,6 +230,8 @@ export const strings = {
         ledgerCard: "کھاتہ",
         discrepanciesCard: "فرق",
         propertiesCard: "پراپرٹیز",
+        // ⬇️ NEW — Urdu for “Rent collected (30 days)”
+        rentCollected: "گزشتہ 30 دن میں موصولہ کرایہ",
       },
 
       ledger: {
