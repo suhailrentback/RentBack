@@ -28,9 +28,9 @@ export const strings = {
       title: "Payment Receipt",
       demo: "Demo: Not a real payment",
       print: "Print / Save",
-      // ✨ FIX: Created the nested 'details' object
       details: {
         tenant: "Tenant",
+        email: "Email", // ✨ FIX
         property: "Property",
         amount: "Amount",
         method: "Method",
@@ -77,9 +77,9 @@ export const strings = {
         title: "Payment Receipt",
         demo: "Demo: Not a real payment",
         print: "Print / Save",
-        // ✨ FIX: Created the nested 'details' object
         details: {
             tenant: "Tenant",
+            email: "Email", // ✨ FIX
             property: "Property",
             amount: "Amount",
             method: "Method",
@@ -150,9 +150,9 @@ export const strings = {
       title: "ادائیگی کی رسید",
       demo: "ڈیمو: حقیقی ادائیگی نہیں",
       print: "پرنٹ / محفوظ کریں",
-      // ✨ FIX: Created the nested 'details' object
       details: {
         tenant: "کرایہ دار",
+        email: "ای میل", // ✨ FIX
         property: "پراپرٹی",
         amount: "رقم",
         method: "طریقہ",
@@ -199,9 +199,9 @@ export const strings = {
         title: "ادائیگی کی رسید",
         demo: "ڈیمو: حقیقی ادائیگی نہیں",
         print: "پرنٹ / محفوظ کریں",
-        // ✨ FIX: Created the nested 'details' object
         details: {
             tenant: "کرایہ دار",
+            email: "ای میل", // ✨ FIX
             property: "پراپرٹی",
             amount: "رقم",
             method: "طریقہ",
