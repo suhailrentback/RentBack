@@ -134,8 +134,10 @@ export const strings = {
           title: "Discrepancies",
           subtitle: "Underpaid vs expected due",
         },
-        // NEW: last payment label (fixes build)
+        // Last payment block
         lastPayment: "Last payment",
+        // 🔧 NEW: used by landlord/page.tsx for the button label
+        viewReceipt: "View receipt",
       },
       ledger: {
         title: "Ledger",
@@ -285,8 +287,9 @@ export const strings = {
           title: "فرق",
           subtitle: "متوقع رقم کے مقابلے کم ادائیگی",
         },
-        // NEW (Urdu): last payment label
         lastPayment: "آخری ادائیگی",
+        // 🔧 NEW (Urdu): matches landlord.home.viewReceipt usage
+        viewReceipt: "رسید دیکھیں",
       },
       ledger: {
         title: "کھاتہ",
