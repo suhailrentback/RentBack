@@ -1,130 +1,163 @@
 // lib/i18n.ts
+// Complete i18n bundle for EN / UR with helpers used across the app.
+// Safe to drop-in replace. No JSX here (server + client safe).
 
 export type Lang = "en" | "ur";
 
+/** Direction helper for RTL/LTR layouts */
+export function dirFor(lang: Lang): "rtl" | "ltr" {
+  return lang === "ur" ? "rtl" : "ltr";
+}
+
+/** Try to read the preferred language from localStorage (client) or default to EN */
+export function getLang(): Lang {
+  if (typeof window !== "undefined") {
+    const v = window.localStorage.getItem("rb-lang");
+    if (v === "en" || v === "ur") return v;
+  }
+  return "en";
+}
+
+/** Set the language (persists for demo) */
+export function setLang(lang: Lang) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem("rb-lang", lang);
+    // Optional: trigger a soft refresh of UI that reads strings at render time
+    try { window.dispatchEvent(new CustomEvent("rb-lang-changed", { detail: lang })); } catch {}
+  }
+}
+
+/** Canonical strings used throughout the demo */
 export const strings = {
   en: {
     app: "RentBack",
     demo: "Demo",
     needHelp: "Need help?",
     support: "Support",
-    bottom: { home: "Home", pay: "Pay", rewards: "Rewards", profile: "Profile" },
 
-    signIn: "Sign in",
-    signOut: "Sign out",
-    email: "Email",
-    continue: "Continue",
+    // Legacy nav labels some pages referenced
+    nav: { home: "Home" },
 
+    // Bottom nav
+    bottom: {
+      home: "Home",
+      pay: "Pay",
+      rewards: "Rewards",
+      profile: "Profile",
+    },
+
+    // Tenant → Pay
     pay: {
       title: "Pay Rent",
-      subtitle: "Demo Mode — no real charges",
+      subtitle: "Make a secure payment",
+      property: "Property",
       amount: "Amount (PKR)",
-      landlord: "Landlord / Property",
-      method: "Method",
-      create: "Create Payment (Demo)",
-      csv: "Download CSV",
-      recent: "Recent",
-      instructions: "Instructions",
-      succeeded: "Succeeded",
-      sent: "Sent",
-      refunded: "Refunded",
+      method: "Payment Method",
+      create: "Create Payment",
       markSent: "Mark as Sent",
-      receipt: "View Receipt",
-      refund: "Refund (Demo)",
-      invalid: "Enter amount and landlord name.",
-      transferTo: "Send to",
-      iban: "IBAN",
-      memo: "Memo",
-      collections: "RentBack Collections",
-      ibanValue: "PK00-RENT-0000-0007",
-      print: "Print / Save PDF",
-      close: "Close",
-      status: "Status",
-      copy: "Copy",
-      copied: "Copied",
-      raastQR: "Raast QR (demo)",
+      print: "Print Receipt",
+      receipt: "Receipt",
+      success: "Payment created",
+      recent: "Recent payments",
+      emptyTitle: "No payments yet",
+      emptyCta: "Create your first payment",
+      methods: {
+        raast: "Raast",
+        bank: "Bank Transfer",
+        jazzcash: "JazzCash",
+      },
+      dueWarning: "Amount is less than the expected due.",
     },
 
+    // Tenant → Rewards
     rewards: {
       title: "Rewards",
-      subtitle: "Pakistan-focused perks",
+      balance: "Balance",
       redeem: "Redeem",
-      choose: "Choose denomination",
-      confirm: "Confirm Redemption",
-      cancel: "Cancel",
-      recent: "Recent Redemptions",
-      none: "No redemptions yet.",
-      viewReceipt: "View Redeem Receipt",
-      receiptTitle: "Redemption Receipt",
-      points: "Points",
-      status: "Status",
-      balance: "Current Balance",
-      activity: "Activity",
-      earn: "Earn",
-      redeemAction: "Redeem",
-      toNextTier: "to next tier",
+      activity: "Recent activity",
+      earned: "Earned",
+      redeemed: "Redeemed",
+      toGold: "to Gold Tier",
+      empty: "Make a rent payment to start earning points",
+      vendors: {
+        foodpanda: "Foodpanda",
+        daraz: "Daraz",
+        careem: "Careem",
+        cinepax: "Cinepax",
+      },
+      voucher: {
+        code: "Voucher Code",
+        copied: "Code copied",
+        receiptTitle: "Redemption Receipt",
+      },
     },
 
+    // Tenant → Receipt
     receipt: {
       title: "Payment Receipt",
       demoNote: "Demo: Not a real payment",
+      backHome: "Back to Home",
+      print: "Print",
       tenant: "Tenant",
       email: "Email",
       property: "Property",
       amount: "Amount",
       method: "Method",
       date: "Date",
-      reference: "Reference",
-      print: "Print",
-      backHome: "Back to Home",
+      ref: "Reference",
+      qrHelp: "Scan to verify (demo)",
     },
 
+    // Landlord
     landlord: {
       home: {
         title: "Landlord Dashboard",
         welcome: "Overview of payouts, ledger and properties",
+        // KPI labels
+        rentCollected: "Rent collected (30 days)",
+        pendingCount: "Payments pending confirmation",
+        // Cards (buttons)
         payoutsCard: "Payouts",
         ledgerCard: "Ledger",
         discrepanciesCard: "Discrepancies",
         propertiesCard: "Properties",
-        // ⬇️ NEW — this is what your page needs
-        rentCollected: "Rent collected (30 days)",
       },
-
       ledger: {
         title: "Ledger",
-        empty: "No entries yet.",
         exportCsv: "Export CSV",
+        empty: "No ledger entries yet",
         viewReceipt: "View receipt",
       },
-
       payouts: {
         title: "Payouts",
-        weeklySummary: "Weekly settlement summary",
         exportCsv: "Export CSV",
+        week: "Week",
+        amount: "Amount",
+        status: "Status",
       },
-
       discrepancies: {
         title: "Discrepancies",
-        description: "Payments that look short vs due amount",
         exportCsv: "Export CSV",
+        rowHint: "Payments under expected amount",
       },
-
       properties: {
         title: "Properties",
         tenants: "Tenants",
-        units: "Units",
-        address: "Address",
-        lastPaid: "Last paid",
+        readOnly: "Read-only (demo)",
       },
     },
 
+    // Admin
     admin: {
       home: {
         title: "Admin",
         payouts: "Payouts Overview",
         discrepancies: "Discrepancy Report",
         transactions: "Transactions",
+      },
+      transactions: {
+        title: "Transactions",
+        exportCsv: "Export CSV",
       },
       payouts: {
         title: "Payouts Overview",
@@ -134,12 +167,9 @@ export const strings = {
         title: "Discrepancy Report",
         exportCsv: "Export CSV",
       },
-      transactions: {
-        title: "Transactions",
-        exportCsv: "Export CSV",
-      },
     },
 
+    // Legal
     legal: {
       privacy: "Privacy Policy",
       terms: "Terms of Service",
@@ -147,118 +177,112 @@ export const strings = {
   },
 
   ur: {
-    app: "RentBack",
+    app: "رینٹ بیک",
     demo: "ڈیمو",
     needHelp: "مدد چاہیے؟",
-    support: "مدد",
-    bottom: { home: "ہوم", pay: "ادائیگی", rewards: "انعامات", profile: "پروفائل" },
+    support: "سپورٹ",
 
-    signIn: "سائن اِن",
-    signOut: "لاگ آؤٹ",
-    email: "ای میل",
-    continue: "جاری رکھیں",
+    nav: { home: "ہوم" },
+
+    bottom: {
+      home: "ہوم",
+      pay: "ادائیگی",
+      rewards: "ریوارڈز",
+      profile: "پروفائل",
+    },
 
     pay: {
       title: "کرایہ ادا کریں",
-      subtitle: "ڈیمو — کوئی حقیقی چارج نہیں",
-      amount: "رقم (PKR)",
-      landlord: "مالک / پراپرٹی",
-      method: "طریقہ",
-      create: "ادائیگی بنائیں (ڈیمو)",
-      csv: "CSV ڈاؤن لوڈ",
-      recent: "حالیہ",
-      instructions: "ہدایات",
-      succeeded: "کامیاب",
-      sent: "بھیج دیا",
-      refunded: "ریفنڈ",
-      markSent: "Sent نشان",
-      receipt: "رسید دیکھیں",
-      refund: "ریفنڈ (ڈیمو)",
-      invalid: "رقم اور مالک/پراپرٹی لکھیں۔",
-      transferTo: "موصول کنندہ",
-      iban: "IBAN",
-      memo: "میمو",
-      collections: "RentBack Collections",
-      ibanValue: "PK00-RENT-0000-0007",
-      print: "پرنٹ / PDF",
-      close: "بند کریں",
-      status: "اسٹیٹس",
-      copy: "کاپی",
-      copied: "کاپی ہو گیا",
-      raastQR: "راست کیو آر (ڈیمو)",
+      subtitle: "محفوظ ادائیگی کریں",
+      property: "پراپرٹی",
+      amount: "رقم (روپے)",
+      method: "ادائیگی کا طریقہ",
+      create: "ادائیگی بنائیں",
+      markSent: "بھجوایا نشان لگائیں",
+      print: "رسید پرنٹ کریں",
+      receipt: "رسید",
+      success: "ادائیگی بن گئی",
+      recent: "حالیہ ادائیگیاں",
+      emptyTitle: "ابھی کوئی ادائیگی نہیں",
+      emptyCta: "اپنی پہلی ادائیگی بنائیں",
+      methods: {
+        raast: "راعست",
+        bank: "بینک ٹرانسفر",
+        jazzcash: "جاز کیش",
+      },
+      dueWarning: "رقم واجب الادا سے کم ہے۔",
     },
 
     rewards: {
-      title: "انعامات",
-      subtitle: "پاکستان کے لیے سہولتیں",
-      redeem: "ریڈیم",
-      choose: "ڈینام منتخب کریں",
-      confirm: "تصدیق",
-      cancel: "منسوخ",
-      recent: "حالیہ ریڈیمپشنز",
-      none: "ابھی تک کوئی ریڈیمپشن نہیں۔",
-      viewReceipt: "ریڈیم رسید",
-      receiptTitle: "ریڈیمپشن رسید",
-      points: "پوائنٹس",
-      status: "اسٹیٹس",
-      balance: "موجودہ بیلنس",
-      activity: "سرگرمیاں",
-      earn: "کمانا",
-      redeemAction: "ریڈیم",
-      toNextTier: "اگلے درجے تک",
+      title: "ریوارڈز",
+      balance: "بیلنس",
+      redeem: "ریڈیـم",
+      activity: "حالیہ سرگرمی",
+      earned: "حاصل",
+      redeemed: "ریڈیـمڈ",
+      toGold: "گولڈ لیول تک",
+      empty: "ریوارڈز حاصل کرنے کے لیے کرایہ ادا کریں",
+      vendors: {
+        foodpanda: "فوڈ پانڈا",
+        daraz: "دراذ",
+        careem: "کریم",
+        cinepax: "سنی پیکس",
+      },
+      voucher: {
+        code: "واؤچر کوڈ",
+        copied: "کوڈ کاپی ہو گیا",
+        receiptTitle: "ریڈیمپشن رسید",
+      },
     },
 
     receipt: {
       title: "ادائیگی کی رسید",
-      demoNote: "ڈیمو: یہ حقیقی ادائیگی نہیں",
+      demoNote: "ڈیمو: یہ اصل ادائیگی نہیں ہے",
+      backHome: "ہوم پر واپس",
+      print: "پرنٹ",
       tenant: "کرایہ دار",
       email: "ای میل",
       property: "پراپرٹی",
       amount: "رقم",
       method: "طریقہ",
       date: "تاریخ",
-      reference: "حوالہ",
-      print: "پرنٹ",
-      backHome: "واپس ہوم",
+      ref: "حوالہ",
+      qrHelp: "تصدیق کے لیے اسکین کریں (ڈیمو)",
     },
 
     landlord: {
       home: {
-        title: "مالک ڈیش بورڈ",
-        welcome: "ادائیگیوں، کھاتے اور پراپرٹیز کا خلاصہ",
+        title: "لینڈلارڈ ڈیش بورڈ",
+        welcome: "ادائیگیوں، لیجر اور پراپرٹیز کا خلاصہ",
+        rentCollected: "گزشتہ 30 دن میں وصول شدہ کرایہ",
+        pendingCount: "زیرِ التواء ادائیگیاں",
         payoutsCard: "ادائیگیاں",
         ledgerCard: "کھاتہ",
         discrepanciesCard: "فرق",
         propertiesCard: "پراپرٹیز",
-        // ⬇️ NEW — Urdu for “Rent collected (30 days)”
-        rentCollected: "گزشتہ 30 دن میں موصولہ کرایہ",
       },
-
       ledger: {
         title: "کھاتہ",
-        empty: "ابھی کوئی اندراج نہیں۔",
-        exportCsv: "CSV ڈاؤن لوڈ",
+        exportCsv: "CSV ایکسپورٹ",
+        empty: "کوئی اندراج موجود نہیں",
         viewReceipt: "رسید دیکھیں",
       },
-
       payouts: {
         title: "ادائیگیوں کا خلاصہ",
-        weeklySummary: "ہفتہ وار سیٹلمنٹ خلاصہ",
-        exportCsv: "CSV ڈاؤن لوڈ",
+        exportCsv: "CSV ایکسپورٹ",
+        week: "ہفتہ",
+        amount: "رقم",
+        status: "حالت",
       },
-
       discrepancies: {
-        title: "فرق",
-        description: "وہ ادائیگیاں جو واجب الادا رقم سے کم لگتی ہیں",
-        exportCsv: "CSV ڈاؤن لوڈ",
+        title: "فرق کی رپورٹ",
+        exportCsv: "CSV ایکسپورٹ",
+        rowHint: "متوقع رقم سے کم ادائیگیاں",
       },
-
       properties: {
         title: "پراپرٹیز",
         tenants: "کرایہ دار",
-        units: "یونٹس",
-        address: "پتہ",
-        lastPaid: "آخری ادائیگی",
+        readOnly: "صرف دیکھنے کے لیے (ڈیمو)",
       },
     },
 
@@ -266,31 +290,33 @@ export const strings = {
       home: {
         title: "ایڈمن",
         payouts: "ادائیگیوں کا جائزہ",
-        discrepancies: "فرق کی رپورٹ",
+        discrepancies: "فرق رپورٹ",
         transactions: "ٹرانزیکشنز",
-      },
-      payouts: {
-        title: "ادائیگیوں کا جائزہ",
-        exportCsv: "CSV ڈاؤن لوڈ",
-      },
-      discrepancies: {
-        title: "فرق کی رپورٹ",
-        exportCsv: "CSV ڈاؤن لوڈ",
       },
       transactions: {
         title: "ٹرانزیکشنز",
-        exportCsv: "CSV ڈاؤن لوڈ",
+        exportCsv: "CSV ایکسپورٹ",
+      },
+      payouts: {
+        title: "ادائیگیوں کا جائزہ",
+        exportCsv: "CSV ایکسپورٹ",
+      },
+      discrepancies: {
+        title: "فرق رپورٹ",
+        exportCsv: "CSV ایکسپورٹ",
       },
     },
 
     legal: {
       privacy: "پرائیویسی پالیسی",
-      terms: "سروس کی شرائط",
+      terms: "شرائطِ استعمال",
     },
   },
 } as const;
 
-// RTL helper for Urdu
-export function dirFor(lang: Lang): "ltr" | "rtl" {
-  return lang === "ur" ? "rtl" : "ltr";
+export type Strings = typeof strings.en;
+
+/** Accessor */
+export function t(lang: Lang): typeof strings.en {
+  return strings[lang];
 }
