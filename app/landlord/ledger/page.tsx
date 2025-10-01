@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import { strings, type Lang } from "@/lib/i18n";
 import { loadPayments, formatPKR } from "@/lib/demo";
+import { loadPayments, loadRewards, formatPKR } from "@/lib/demo";
 import Link from "next/link";
 
 export default function LandlordLedgerPage() {
