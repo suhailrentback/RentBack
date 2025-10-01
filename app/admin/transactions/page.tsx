@@ -4,7 +4,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import EmptyState from "@/components/EmptyState";
-import { TableSkeleton } from "@/components/Skeletons";
+import { ListSkeleton } from "@/components/Skeletons"; // ✅ use existing export
 import { strings, type Lang } from "@/lib/i18n";
 import {
   loadPayments,
@@ -12,12 +12,11 @@ import {
   type DemoPayment,
 } from "@/lib/demo";
 
-// Local CSV helper (kept inline to avoid drift/missing imports)
+// Local CSV helper (inline to avoid drift)
 function downloadCSV(filename: string, rows: Array<Record<string, any>>) {
   if (!rows.length) return;
   const headers = Object.keys(rows[0]);
-  const escape = (val: any) =>
-    `"${String(val ?? "").replace(/"/g, '""')}"`;
+  const escape = (val: any) => `"${String(val ?? "").replace(/"/g, '""')}"`;
   const csv = [
     headers.join(","),
     ...rows.map((r) => headers.map((h) => escape(r[h])).join(",")),
@@ -119,7 +118,7 @@ export default function AdminTransactionsPage() {
 
         {/* List */}
         {loading ? (
-          <TableSkeleton />
+          <ListSkeleton />
         ) : filtered.length === 0 ? (
           <EmptyState
             title="No transactions found"
