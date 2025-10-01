@@ -24,6 +24,18 @@ export const strings = {
       urdu: "اردو",
       english: "English",
     },
+    // ✨ FIX: Added a top-level receipt object for the receipt page
+    receipt: {
+        title: "Payment Receipt",
+        demoBadge: "Demo: Not a real payment",
+        tenant: "Tenant",
+        property: "Property",
+        amount: "Amount",
+        method: "Method",
+        date: "Date",
+        raastRef: "Raast reference",
+        print: "Print / Save",
+    },
     tenant: {
       home: {
         title: "Dashboard",
@@ -101,7 +113,7 @@ export const strings = {
       },
       properties: {
         title: "Properties",
-        subtitle: "Manage your properties and tenants", // ✨ FIX
+        subtitle: "Manage your properties and tenants",
         none: "No properties found.",
         tenants: "Tenants",
         expected: "Expected",
@@ -128,6 +140,18 @@ export const strings = {
       light: "لائٹ",
       urdu: "اردو",
       english: "English",
+    },
+     // ✨ FIX: Added a top-level receipt object for the receipt page
+    receipt: {
+        title: "ادائیگی کی رسید",
+        demoBadge: "ڈیمو: حقیقی ادائیگی نہیں",
+        tenant: "کرایہ دار",
+        property: "پراپرٹی",
+        amount: "رقم",
+        method: "طریقہ",
+        date: "تاریخ",
+        raastRef: "راست حوالہ",
+        print: "پرنٹ / محفوظ کریں",
     },
     tenant: {
       home: {
@@ -206,7 +230,7 @@ export const strings = {
       },
       properties: {
         title: "جائیدادیں",
-        subtitle: "اپنی جائیدادوں اور کرایہ داروں کا نظم کریں", // ✨ FIX
+        subtitle: "اپنی جائیدادوں اور کرایہ داروں کا نظم کریں",
         none: "کوئی جائیداد نہیں ملی۔",
         tenants: "کرایہ دار",
         expected: "متوقع",
