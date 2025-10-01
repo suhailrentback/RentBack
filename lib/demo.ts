@@ -1,5 +1,7 @@
 // lib/demo.ts
-// Browser-safe demo data helpers used across Tenant & Landlord pages.
+// Demo data helpers (payments, rewards) with strict TypeScript types.
+// Safe to import in client components; these functions only touch
+// localStorage when running in the browser.
 
 export type Method = "RAAST" | "BANK" | "JAZZCASH";
 export type Status = "PENDING" | "SENT";
@@ -13,13 +15,25 @@ export type DemoPayment = {
   status: Status;
 };
 
-const PAYMENTS_KEY = "rb_payments";
-const REWARDS_KEY = "rb_rewards";
+export type RewardActivityType = "EARN" | "REDEEM";
 
-const isBrowser =
-  typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+export type RewardActivity = {
+  id: string;
+  type: RewardActivityType;
+  points: number;
+  createdAt: string; // ISO
+  note?: string;
+};
 
-// PKR formatter
+export type RewardsState = {
+  balance: number;
+  activity: RewardActivity[];
+};
+
+const STORAGE_PAYMENTS = "rb_demo_payments";
+const STORAGE_REWARDS = "rb_demo_rewards";
+
+// ---------- Utilities ----------
 export function formatPKR(n: number): string {
   try {
     return new Intl.NumberFormat("en-PK", {
@@ -32,111 +46,179 @@ export function formatPKR(n: number): string {
   }
 }
 
-// ID helper
-function uid(): string {
-  return Math.random().toString(36).slice(2, 10);
+function isBrowser(): boolean {
+  return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
-// Demo seed (only in browser, only if empty)
-function seedIfEmpty(): void {
-  if (!isBrowser) return;
-  const raw = window.localStorage.getItem(PAYMENTS_KEY);
-  if (raw) return;
-
-  const now = new Date();
-  const days = (d: number) => {
-    const t = new Date(now);
-    t.setDate(now.getDate() - d);
-    return t.toISOString();
-  };
-
-  const seed: DemoPayment[] = [
-    {
-      id: uid(),
-      createdAt: days(25),
-      property: "Gulberg Heights Apt 302",
-      amount: 65000,
-      method: "RAAST",
-      status: "SENT",
-    },
-    {
-      id: uid(),
-      createdAt: days(5),
-      property: "Gulberg Heights Apt 302",
-      amount: 65000,
-      method: "BANK",
-      status: "PENDING",
-    },
-  ];
-
-  window.localStorage.setItem(PAYMENTS_KEY, JSON.stringify(seed));
-  // also seed rewards a little (1% of sent = 650)
-  const sentTotal = seed
-    .filter(p => p.status === "SENT")
-    .reduce((s, p) => s + p.amount, 0);
-  const pts = Math.round(sentTotal * 0.01);
-  window.localStorage.setItem(REWARDS_KEY, JSON.stringify(pts));
+function uid(prefix = "rb"): string {
+  return `${prefix}_${Math.random().toString(36).slice(2, 8)}_${Date.now()
+    .toString(36)
+    .slice(-4)}`;
 }
 
-// ----- Payments -----
+// ---------- Seed Demo Data Once ----------
+function seedDemo() {
+  if (!isBrowser()) return;
+
+  // Seed payments (if empty)
+  const rawP = localStorage.getItem(STORAGE_PAYMENTS);
+  if (!rawP) {
+    const now = Date.now();
+    const seed: DemoPayment[] = [
+      {
+        id: uid("pay"),
+        createdAt: new Date(now - 1000 * 60 * 60 * 24 * 14).toISOString(),
+        property: "Clifton Block 5 – Apt 702",
+        amount: 65000,
+        method: "BANK",
+        status: "SENT",
+      },
+      {
+        id: uid("pay"),
+        createdAt: new Date(now - 1000 * 60 * 60 * 24 * 2).toISOString(),
+        property: "DHA Phase 6 – House 21B",
+        amount: 65000,
+        method: "RAAST",
+        status: "PENDING",
+      },
+    ];
+    localStorage.setItem(STORAGE_PAYMENTS, JSON.stringify(seed));
+  }
+
+  // Seed rewards (if empty)
+  const rawR = localStorage.getItem(STORAGE_REWARDS);
+  if (!rawR) {
+    const seed: RewardsState = {
+      balance: 650, // e.g., +1% of a prior 65,000 payment
+      activity: [
+        {
+          id: uid("rew"),
+          type: "EARN",
+          points: 650,
+          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(),
+          note: "1% on rent payment",
+        },
+      ],
+    };
+    localStorage.setItem(STORAGE_REWARDS, JSON.stringify(seed));
+  }
+}
+
+// Ensure seed runs (no-ops on server)
+seedDemo();
+
+// ---------- Payments ----------
 export function loadPayments(): DemoPayment[] {
-  if (!isBrowser) return [];
-  seedIfEmpty();
+  if (!isBrowser()) return [];
   try {
-    const raw = window.localStorage.getItem(PAYMENTS_KEY);
-    return raw ? (JSON.parse(raw) as DemoPayment[]) : [];
+    const raw = localStorage.getItem(STORAGE_PAYMENTS);
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as DemoPayment[];
+    // Defensive cast to the proper union
+    return arr.map((p) => ({
+      ...p,
+      status: (p.status === "SENT" ? "SENT" : "PENDING") as Status,
+      method:
+        p.method === "BANK"
+          ? "BANK"
+          : p.method === "JAZZCASH"
+          ? "JAZZCASH"
+          : ("RAAST" as Method),
+    }));
   } catch {
     return [];
   }
 }
 
 export function savePayments(next: DemoPayment[]): void {
-  if (!isBrowser) return;
-  window.localStorage.setItem(PAYMENTS_KEY, JSON.stringify(next));
+  if (!isBrowser()) return;
+  localStorage.setItem(STORAGE_PAYMENTS, JSON.stringify(next));
 }
 
-// Convenience: add a new payment
-export function addPayment(p: Omit<DemoPayment, "id" | "createdAt" | "status">) {
+export function createPayment(input: {
+  property: string;
+  amount: number;
+  method: Method;
+}): DemoPayment {
   const all = loadPayments();
-  const item: DemoPayment = {
-    id: uid(),
+  const payment: DemoPayment = {
+    id: uid("pay"),
     createdAt: new Date().toISOString(),
+    property: input.property,
+    amount: input.amount,
+    method: input.method,
     status: "PENDING",
-    ...p,
   };
-  const next = [item, ...all];
+  const next: DemoPayment[] = [payment, ...all];
   savePayments(next);
-  return item;
+  return payment;
 }
 
-// Mark sent by id (+1% rewards)
-export function markPaymentSent(id: string) {
+export function markPaymentSent(id: string): DemoPayment | undefined {
   const all = loadPayments();
-  const next = all.map(p => (p.id === id ? { ...p, status: "SENT" } : p));
+  const next: DemoPayment[] = all.map((p) =>
+    p.id === id ? { ...p, status: "SENT" as Status } : p
+  );
   savePayments(next);
 
-  const just = next.find(p => p.id === id);
+  // Rewards +1% when a payment flips to SENT
+  const just = next.find((p) => p.id === id);
   if (just && just.status === "SENT") {
-    const inc = Math.round(just.amount * 0.01);
-    const cur = loadRewards();
-    saveRewards(cur + inc);
+    addRewardEarn(Math.round(just.amount * 0.01), "1% on rent payment");
   }
-
-  return next;
+  return just;
 }
 
-// ----- Rewards -----
-export function loadRewards(): number {
-  if (!isBrowser) return 0;
+// ---------- Rewards ----------
+export function loadRewards(): RewardsState {
+  if (!isBrowser()) return { balance: 0, activity: [] };
   try {
-    const raw = window.localStorage.getItem(REWARDS_KEY);
-    return raw ? (JSON.parse(raw) as number) : 0;
+    const raw = localStorage.getItem(STORAGE_REWARDS);
+    if (!raw) return { balance: 0, activity: [] };
+    const state = JSON.parse(raw) as RewardsState;
+    return {
+      balance: Number(state.balance) || 0,
+      activity: Array.isArray(state.activity) ? state.activity : [],
+    };
   } catch {
-    return 0;
+    return { balance: 0, activity: [] };
   }
 }
 
-export function saveRewards(n: number): void {
-  if (!isBrowser) return;
-  window.localStorage.setItem(REWARDS_KEY, JSON.stringify(Math.max(0, n)));
+export function saveRewards(state: RewardsState): void {
+  if (!isBrowser()) return;
+  localStorage.setItem(STORAGE_REWARDS, JSON.stringify(state));
+}
+
+export function addRewardEarn(points: number, note?: string): void {
+  const curr = loadRewards();
+  const activity: RewardActivity = {
+    id: uid("rew"),
+    type: "EARN",
+    points: Math.max(0, Math.round(points)),
+    createdAt: new Date().toISOString(),
+    note,
+  };
+  const next: RewardsState = {
+    balance: curr.balance + activity.points,
+    activity: [activity, ...curr.activity],
+  };
+  saveRewards(next);
+}
+
+export function redeemReward(points: number, note?: string): void {
+  const curr = loadRewards();
+  const use = Math.max(0, Math.min(points, curr.balance));
+  const activity: RewardActivity = {
+    id: uid("rew"),
+    type: "REDEEM",
+    points: use,
+    createdAt: new Date().toISOString(),
+    note,
+  };
+  const next: RewardsState = {
+    balance: curr.balance - use,
+    activity: [activity, ...curr.activity],
+  };
+  saveRewards(next);
 }
