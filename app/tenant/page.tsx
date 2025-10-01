@@ -12,8 +12,8 @@ import {
 import Link from "next/link";
 
 export default function TenantHomePage() {
-  // Later: wire these from a global context or cookie
-  const lang: Lang = "en";
+  // FIX: use state so TypeScript treats lang as "en" | "ur", not the literal "en"
+  const [lang] = useState<Lang>("en");
   const t = strings[lang];
 
   const [payments, setPayments] = useState<DemoPayment[]>([]);
@@ -22,7 +22,7 @@ export default function TenantHomePage() {
   useEffect(() => {
     setPayments(loadPayments());
     const r = loadRewards();
-    setRewards(r.balance); // ✅ FIX: loadRewards() returns object; we store only .balance
+    setRewards(r.balance); // loadRewards() returns an object; we store only .balance
   }, []);
 
   const last = useMemo(
@@ -31,7 +31,6 @@ export default function TenantHomePage() {
   );
 
   const nextDue = useMemo(() => {
-    // Demo logic: assume one property, due next month same day
     const today = new Date();
     const due = new Date(today.getFullYear(), today.getMonth() + 1, 5, 0, 0, 0);
     return due.toLocaleDateString(lang === "ur" ? "ur-PK" : "en-PK", {
