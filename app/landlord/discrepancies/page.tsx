@@ -1,72 +1,60 @@
+// app/landlord/discrepancies/page.tsx
 "use client";
-import { useEffect, useState } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { csvForDiscrepancies } from "@/lib/demo";
 
-type Row = { property: string; tenant: string; expected: number; paid: number };
+import { useState } from "react";
+import MobileAppShell from "@/components/MobileAppShell";
+import { strings, type Lang } from "@/lib/i18n";
+import { formatPKR } from "@/lib/demo";
 
 export default function LandlordDiscrepanciesPage() {
-  const [rows, setRows] = useState<Row[]|null>(null);
+  const lang: Lang = "en";
+  const t = strings[lang].landlord;
 
-  useEffect(() => {
-    // demo: one underpayment
-    setTimeout(() => {
-      setRows([
-        { property: "Gulberg Heights A-14", tenant: "Ali Raza", expected: 65000, paid: 60000 },
-      ]);
-    }, 300);
-  }, []);
+  const [rows] = useState([
+    { id: "d1", tenant: "Ali", expected: 65000, paid: 60000 },
+  ]);
 
-  function downloadCSV() {
-    if (!rows?.length) return;
-    const csv = csvForDiscrepancies(rows);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  function exportCSV() {
+    const csv = [
+      ["Tenant", "Expected", "Paid", "Difference"],
+      ...rows.map((r) => [r.tenant, r.expected, r.paid, r.expected - r.paid]),
+    ]
+      .map((r) => r.join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "landlord_discrepancies.csv";
+    a.download = "discrepancies.csv";
     a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
     <MobileAppShell>
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Discrepancies</h1>
-          <button onClick={downloadCSV} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
-            Export CSV
-          </button>
-        </div>
-
-        {!rows && <div className="h-24 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />}
-        {rows && rows.length === 0 && (
-          <div className="text-sm opacity-70">All settled — no discrepancies.</div>
-        )}
-        {rows && rows.length > 0 && (
-          <div className="space-y-3">
-            {rows.map((r, i) => {
-              const delta = r.paid - r.expected;
-              const badge = delta < 0 ? "bg-amber-500" : delta > 0 ? "bg-blue-500" : "bg-emerald-600";
-              const label = delta < 0 ? "Under" : delta > 0 ? "Over" : "On target";
-              return (
-                <div key={i} className="rounded-xl border border-black/10 dark:border-white/10 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-medium">{r.property}</div>
-                      <div className="text-xs opacity-70">{r.tenant}</div>
-                    </div>
-                    <div className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badge}`}>{label}</div>
-                  </div>
-                  <div className="mt-3 text-sm">
-                    Expected: <b>₨ {r.expected.toLocaleString("en-PK")}</b> &nbsp;·&nbsp; Paid: <b>₨ {r.paid.toLocaleString("en-PK")}</b> &nbsp;·&nbsp;
-                    Delta: <b>₨ {(delta).toLocaleString("en-PK")}</b>
-                  </div>
+        <h1 className="text-xl font-semibold">{t.discrepanciesCard}</h1>
+        <button
+          onClick={exportCSV}
+          className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm"
+        >
+          Export CSV
+        </button>
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li
+              key={r.id}
+              className="rounded-lg border border-black/10 dark:border-white/10 p-3 flex justify-between"
+            >
+              <div>{r.tenant}</div>
+              <div className="text-right">
+                <div>{formatPKR(r.paid)}</div>
+                <div className="text-xs opacity-70">
+                  Diff: {formatPKR(r.expected - r.paid)}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
     </MobileAppShell>
   );
