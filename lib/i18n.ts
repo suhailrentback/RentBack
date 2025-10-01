@@ -129,11 +129,13 @@ export const strings = {
           day: "Friday",
           none: "No settlements yet",
         },
-        // NEW: Discrepancies card block (needed by landlord/page.tsx)
+        // Discrepancies card block
         discrepancies: {
           title: "Discrepancies",
           subtitle: "Underpaid vs expected due",
         },
+        // NEW: last payment label (fixes build)
+        lastPayment: "Last payment",
       },
       ledger: {
         title: "Ledger",
@@ -279,11 +281,12 @@ export const strings = {
           day: "جمعہ",
           none: "ابھی کوئی سیٹلمنٹ نہیں",
         },
-        // NEW (Urdu): Discrepancies card block
         discrepancies: {
           title: "فرق",
           subtitle: "متوقع رقم کے مقابلے کم ادائیگی",
         },
+        // NEW (Urdu): last payment label
+        lastPayment: "آخری ادائیگی",
       },
       ledger: {
         title: "کھاتہ",
