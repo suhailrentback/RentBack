@@ -102,6 +102,7 @@ export const strings = {
       properties: {
         title: "Properties",
         none: "No properties found.",
+        tenants: "Tenants", // ✨ FIX: Added missing text
       },
     },
   },
@@ -201,6 +202,7 @@ export const strings = {
       properties: {
         title: "جائیدادیں",
         none: "کوئی جائیداد نہیں ملی۔",
+        tenants: "کرایہ دار", // ✨ FIX: Added missing text
       },
     },
   },
