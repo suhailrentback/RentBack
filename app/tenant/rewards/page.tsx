@@ -3,9 +3,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { ListSkeleton } from "@/components/Skeletons"; // ✅ only use ListSkeleton
+import { ListSkeleton } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
-import { loadRewards, saveRewards } from "@/lib/demo";
+import {
+  loadRewards,
+  saveRewards,
+  type RewardsState,
+  type RewardActivity,
+} from "@/lib/demo";
 
 function useCountUp(target: number, duration = 600) {
   const [val, setVal] = useState(0);
@@ -25,20 +30,16 @@ function useCountUp(target: number, duration = 600) {
   return val;
 }
 
-type Activity =
-  | { type: "EARN"; pts: number; at: string; ref?: string }
-  | { type: "REDEEM"; pts: number; at: string; vendor: string; code: string };
-
 export default function TenantRewardsPage() {
   const [lang] = useState<Lang>("en");
   const t = strings[lang];
 
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
-  const [activity, setActivity] = useState<Activity[]>([]);
+  const [activity, setActivity] = useState<RewardActivity[]>([]);
 
   useEffect(() => {
-    const r = loadRewards(); // same key as Pay
+    const r: RewardsState = loadRewards();
     setBalance(r.balance || 0);
     setActivity(r.activity || []);
     setLoading(false);
@@ -56,10 +57,11 @@ export default function TenantRewardsPage() {
     const now = new Date().toISOString();
 
     const newBal = balance - cost;
-    const entry: Activity = {
+    const entry: RewardActivity = {
+      id: crypto.randomUUID(),
       type: "REDEEM",
-      pts: cost,
-      at: now,
+      points: cost,
+      createdAt: now,
       vendor,
       code,
     };
@@ -67,7 +69,8 @@ export default function TenantRewardsPage() {
 
     setBalance(newBal);
     setActivity(next);
-    saveRewards({ balance: newBal, activity: next });
+    const updated: RewardsState = { balance: newBal, activity: next };
+    saveRewards(updated);
     alert(`${vendor} ${t.tenant.rewards.voucherCode}: ${code}`);
   }
 
@@ -147,9 +150,9 @@ export default function TenantRewardsPage() {
             </div>
           ) : (
             <ul className="space-y-2">
-              {activity.map((a, i) => (
+              {activity.map((a) => (
                 <li
-                  key={i}
+                  key={a.id}
                   className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
                 >
                   <div>
@@ -159,12 +162,13 @@ export default function TenantRewardsPage() {
                         : t.tenant.rewards.redeemed}
                     </div>
                     <div className="text-xs opacity-70">
-                      {new Date(a.at).toLocaleString(
+                      {new Date(a.createdAt).toLocaleString(
                         lang === "ur" ? "ur-PK" : "en-PK"
                       )}
-                      {"vendor" in a && ` • ${a.vendor}`}
-                      {"code" in a &&
+                      {a.vendor && ` • ${a.vendor}`}
+                      {a.code &&
                         ` • ${t.tenant.rewards.voucherCode}: ${a.code}`}
+                      {a.ref && ` • ref: ${a.ref}`}
                     </div>
                   </div>
                   <div
@@ -173,7 +177,7 @@ export default function TenantRewardsPage() {
                     }`}
                   >
                     {a.type === "EARN" ? "+" : "-"}
-                    {a.pts}
+                    {a.points}
                   </div>
                 </li>
               ))}
