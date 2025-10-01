@@ -82,25 +82,4 @@ export const strings = {
         balance: "Current balance",
         redeem: "Quick redeem",
         activity: "Recent activity",
-        earned: "Earned",
-        redeemed: "Redeemed",
-        voucherCode: "Voucher code",
-        progress: {
-          toGold: "You're {{pts}} pts away from Gold Tier",
-        },
-        empty: "Make a rent payment to start earning points.",
-      },
-
-      profile: {
-        title: "Profile",
-        signOut: "Sign out (demo)",
-        privacy: "Privacy Policy",
-        terms: "Terms of Service",
-        needHelp: "Need Help?",
-      },
-    },
-
-    landlord: {
-      home: {
-        title: "Landlord Dashboard",
-        welcome: "Overview of payouts, ledger and properties
+        earned: "
