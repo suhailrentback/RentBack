@@ -6,7 +6,6 @@ import MobileAppShell from "@/components/MobileAppShell";
 import { strings, type Lang } from "@/lib/i18n";
 import { useState, useEffect } from "react";
 import { formatPKR, loadPayments, loadRewards } from "@/lib/demo";
-import { loadPayments, loadRewards, formatPKR } from "@/lib/demo";
 
 export default function TenantHomePage() {
   const lang: Lang = "en"; // Later: wire from context
