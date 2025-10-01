@@ -30,7 +30,8 @@ export const strings = {
       print: "Print / Save",
       sent: "Sent",
       pending: "Pending",
-      qrLabel: "Scan to verify (demo)", // ✨ THE FIX
+      qrLabel: "Scan to verify (demo)",
+      backHome: "Back to Home", // ✨ THE FINAL FIX
       details: {
         tenant: "Tenant",
         email: "Email",
@@ -84,7 +85,8 @@ export const strings = {
         print: "Print / Save",
         sent: "Sent",
         pending: "Pending",
-        qrLabel: "Scan to verify (demo)", // ✨ THE FIX
+        qrLabel: "Scan to verify (demo)",
+        backHome: "Back to Home", // ✨ THE FINAL FIX
         details: {
             tenant: "Tenant",
             email: "Email",
@@ -162,7 +164,8 @@ export const strings = {
       print: "پرنٹ / محفوظ کریں",
       sent: "بھیجا گیا",
       pending: "زیر التواء",
-      qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)", // ✨ THE FIX
+      qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
+      backHome: "ہوم پر واپس", // ✨ THE FINAL FIX
       details: {
         tenant: "کرایہ دار",
         email: "ای میل",
@@ -216,7 +219,8 @@ export const strings = {
         print: "پرنٹ / محفوظ کریں",
         sent: "بھیجا گیا",
         pending: "زیر التواء",
-        qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)", // ✨ THE FIX
+        qrLabel: "تصدیق کے لیے اسکین کریں (ڈیمو)",
+        backHome: "ہوم پر واپس", // ✨ THE FINAL FIX
         details: {
             tenant: "کرایہ دار",
             email: "ای میل",
