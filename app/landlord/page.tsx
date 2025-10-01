@@ -27,7 +27,7 @@ const STORAGE_KEY = 'rb-payments';
 
 function loadPayments(): DemoPayment[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return [];
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
@@ -38,8 +38,9 @@ function loadPayments(): DemoPayment[] {
 }
 
 export default function LandlordHomePage() {
-  // Cast i18n safely to avoid TypeScript property errors if keys were added recently.
-  const t = strings() as any;
+  // ✅ FIX: strings is an OBJECT, not a function. Safely pick English or fall back.
+  const i18n = strings as any;
+  const t = (i18n?.en ?? i18n) as any;
 
   const [payments, setPayments] = useState<DemoPayment[]>([]);
 
