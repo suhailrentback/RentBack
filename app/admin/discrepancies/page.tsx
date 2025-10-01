@@ -1,64 +1,64 @@
+// app/admin/discrepancies/page.tsx
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { csvForDiscrepancies } from "@/lib/demo";
+import { formatPKR } from "@/lib/demo";
 
-type Row = { property: string; tenant: string; expected: number; paid: number };
+export default function AdminDiscrepanciesPage() {
+  const [rows] = useState([
+    { id: "ad1", landlord: "Ahmed", tenant: "Ali", expected: 65000, paid: 60000 },
+  ]);
 
-export default function AdminDiscrepancyReportPage() {
-  const [rows, setRows] = useState<Row[]|null>(null);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setRows([
-        { property: "Emaar Crescent 9-B", tenant: "Sara Khan", expected: 95000, paid: 90000 },
-        { property: "Gulistan Apt 2-C", tenant: "Zain Ahmed", expected: 50000, paid: 50000 },
-      ]);
-    }, 300);
-  }, []);
-
-  function downloadCSV() {
-    if (!rows?.length) return;
-    const csv = csvForDiscrepancies(rows);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  function exportCSV() {
+    const csv = [
+      ["Landlord", "Tenant", "Expected", "Paid", "Difference"],
+      ...rows.map((r) => [
+        r.landlord,
+        r.tenant,
+        r.expected,
+        r.paid,
+        r.expected - r.paid,
+      ]),
+    ]
+      .map((r) => r.join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = "admin_discrepancies.csv";
     a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
     <MobileAppShell>
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Discrepancy Report</h1>
-          <button onClick={downloadCSV} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
-            Export CSV
-          </button>
-        </div>
-        {!rows && <div className="h-24 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />}
-        {rows && rows.length > 0 && rows.map((r, i) => {
-          const delta = r.paid - r.expected;
-          const badge = delta < 0 ? "bg-amber-500" : delta > 0 ? "bg-blue-500" : "bg-emerald-600";
-          const label = delta < 0 ? "Under" : delta > 0 ? "Over" : "On target";
-          return (
-            <div key={i} className="rounded-xl border border-black/10 dark:border-white/10 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{r.property}</div>
-                  <div className="text-xs opacity-70">{r.tenant}</div>
+        <h1 className="text-xl font-semibold">Admin Discrepancy Report</h1>
+        <button
+          onClick={exportCSV}
+          className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm"
+        >
+          Export CSV
+        </button>
+        <ul className="space-y-2">
+          {rows.map((r) => (
+            <li
+              key={r.id}
+              className="rounded-lg border border-black/10 dark:border-white/10 p-3 flex justify-between"
+            >
+              <div>
+                {r.landlord} → {r.tenant}
+              </div>
+              <div className="text-right">
+                <div>{formatPKR(r.paid)}</div>
+                <div className="text-xs opacity-70">
+                  Diff: {formatPKR(r.expected - r.paid)}
                 </div>
-                <div className={`text-[10px] px-2 py-0.5 rounded-full text-white ${badge}`}>{label}</div>
               </div>
-              <div className="mt-3 text-sm">
-                Expected: <b>₨ {r.expected.toLocaleString("en-PK")}</b> · Paid: <b>₨ {r.paid.toLocaleString("en-PK")}</b> ·
-                Delta: <b>₨ {(delta).toLocaleString("en-PK")}</b>
-              </div>
-            </div>
-          );
-        })}
+            </li>
+          ))}
+        </ul>
       </div>
     </MobileAppShell>
   );
