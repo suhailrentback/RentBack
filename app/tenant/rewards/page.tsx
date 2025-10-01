@@ -168,7 +168,6 @@ export default function TenantRewardsPage() {
                       {a.vendor && ` • ${a.vendor}`}
                       {a.code &&
                         ` • ${t.tenant.rewards.voucherCode}: ${a.code}`}
-                      {a.ref && ` • ref: ${a.ref}`}
                     </div>
                   </div>
                   <div
