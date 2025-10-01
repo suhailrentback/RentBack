@@ -79,7 +79,7 @@ export default function LandlordPropertiesPage() {
               <div>
                 <div className="font-medium">{r.name}</div>
                 <div className="text-xs opacity-70">
-                  {t.landlord.properties.tenant}: {r.tenant}
+                  {t.landlord.properties.tenants}: {r.tenant}
                 </div>
               </div>
               <div className="text-right">
