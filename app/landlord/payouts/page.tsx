@@ -1,53 +1,56 @@
+// app/landlord/payouts/page.tsx
 "use client";
-import { useEffect, useState } from "react";
+
+import { useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { csvForPayouts } from "@/lib/demo";
+import { strings, type Lang } from "@/lib/i18n";
+import { formatPKR } from "@/lib/demo";
 
-type Row = { week: string; total: number; count: number };
+export default function LandlordPayoutsPage() {
+  const lang: Lang = "en";
+  const t = strings[lang].landlord;
 
-export default function AdminPayoutsOverviewPage() {
-  const [rows, setRows] = useState<Row[]|null>(null);
+  const [payouts] = useState([
+    { id: "p1", week: "2025-09-20", amount: 120000 },
+    { id: "p2", week: "2025-09-27", amount: 140000 },
+  ]);
 
-  useEffect(() => {
-    setTimeout(() => {
-      setRows([
-        { week: "This Week", total: 485000, count: 7 },
-        { week: "Last Week", total: 610000, count: 9 },
-      ]);
-    }, 300);
-  }, []);
-
-  function downloadCSV() {
-    if (!rows?.length) return;
-    const csv = csvForPayouts(rows);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  function exportCSV() {
+    const csv = [
+      ["Week", "Amount"],
+      ...payouts.map((p) => [p.week, p.amount]),
+    ]
+      .map((r) => r.join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "admin_payouts_overview.csv";
+    a.download = "payouts.csv";
     a.click();
-    URL.revokeObjectURL(url);
   }
 
   return (
     <MobileAppShell>
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Payouts Overview</h1>
-          <button onClick={downloadCSV} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm">
-            Export CSV
-          </button>
-        </div>
-        {!rows && <div className="h-24 rounded-xl bg-black/5 dark:bg-white/10 animate-pulse" />}
-        {rows && rows.length > 0 && rows.map(r => (
-          <div key={r.week} className="rounded-xl border border-black/10 dark:border-white/10 p-4 flex items-center justify-between">
-            <div className="font-medium">{r.week}</div>
-            <div className="text-right">
-              <div className="font-semibold">₨ {r.total.toLocaleString("en-PK")}</div>
-              <div className="text-xs opacity-70">{r.count} payments</div>
-            </div>
-          </div>
-        ))}
+        <h1 className="text-xl font-semibold">{t.payoutsCard}</h1>
+        <button
+          onClick={exportCSV}
+          className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm"
+        >
+          Export CSV
+        </button>
+        <ul className="space-y-2">
+          {payouts.map((p) => (
+            <li
+              key={p.id}
+              className="rounded-lg border border-black/10 dark:border-white/10 p-3 flex justify-between"
+            >
+              <div>{p.week}</div>
+              <div>{formatPKR(p.amount)}</div>
+            </li>
+          ))}
+        </ul>
       </div>
     </MobileAppShell>
   );
