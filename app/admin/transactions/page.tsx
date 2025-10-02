@@ -1,164 +1,89 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import AppShell from "@/components/AppShell";
-import EmptyState from "@/components/EmptyState";
-import { strings, type Lang } from "@/lib/i18n";
-import { loadPayments, type DemoPayment } from "@/lib/demo";
-// Skeletons: use the shared names we standardized to
 import { TableSkel } from "@/components/Skeletons";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
 
-function formatPKR(v: number) {
-  return `Rs ${Math.round(v).toLocaleString("en-PK")}`;
-}
+type Filters = {
+  method: "ALL" | "RAAST" | "BANK" | "JAZZCASH";
+  status: "ALL" | "PENDING" | "SENT";
+};
 
-// tiny CSV helper (safe & local); if you already have a shared one, you can swap it in.
-function exportCsv(rows: Array<Record<string, unknown>>, filename: string) {
-  if (!rows.length) return;
-  const headers = Object.keys(rows[0]);
-  const lines = [
-    headers.join(","),
-    ...rows.map((r) =>
-      headers
-        .map((h) => {
-          const cell = r[h];
-          const s = cell == null ? "" : String(cell);
-          // escape quotes
-          const escaped = s.replace(/"/g, '""');
-          // wrap if contains comma or quotes
-          return s.includes(",") || s.includes('"') ? `"${escaped}"` : escaped;
-        })
-        .join(",")
-    ),
-  ].join("\n");
-  const blob = new Blob([lines], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-type StatusFilter = "ALL" | "PENDING" | "SENT";
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function AdminTransactionsPage() {
-  const lang: Lang = "en";
-  const t = strings[lang];
-
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<DemoPayment[]>([]);
-  const [status, setStatus] = useState<StatusFilter>("ALL");
-  const [q, setQ] = useState("");
+  const [rows, setRows] = useState<DemoPayment[] | null>(null);
+  const [filters, setFilters] = useState<Filters>({ method: "ALL", status: "ALL" });
 
   useEffect(() => {
-    const all = loadPayments();
-    setRows(all);
-    setLoading(false);
+    setRows(loadPayments());
   }, []);
 
   const filtered = useMemo(() => {
+    if (!rows) return null;
     return rows.filter((r) => {
-      if (status !== "ALL" && r.status !== status) return false;
-      if (!q.trim()) return true;
-      const hay = `${r.id} ${r.property} ${r.method}`.toLowerCase();
-      return hay.includes(q.trim().toLowerCase());
+      const m = filters.method === "ALL" || r.method === filters.method;
+      const s = filters.status === "ALL" || r.status === filters.status;
+      return m && s;
     });
-  }, [rows, status, q]);
-
-  const download = () => {
-    exportCsv(
-      filtered.map((r) => ({
-        id: r.id,
-        createdAt: r.createdAt,
-        property: r.property,
-        amount: r.amount,
-        method: r.method,
-        status: r.status,
-      })),
-      "transactions.csv"
-    );
-  };
+  }, [rows, filters]);
 
   return (
     <AppShell role="admin" title="Transactions">
       <div className="p-4 space-y-4">
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
-          <div className="flex gap-2">
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as StatusFilter)}
-              className="rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm"
-            >
-              <option value="ALL">All statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="SENT">Sent</option>
-            </select>
-            <input
-              placeholder="Search by property or method…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            onClick={download}
-            className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm"
+        {/* Filters */}
+        <div className="flex flex-wrap gap-2">
+          <select
+            className="px-2 py-1 rounded-lg border border-black/10 dark:border-white/10 text-sm bg-transparent"
+            value={filters.method}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, method: e.target.value as Filters["method"] }))
+            }
           >
-            Export CSV
-          </button>
+            <option value="ALL">All methods</option>
+            <option value="RAAST">Raast</option>
+            <option value="BANK">Bank</option>
+            <option value="JAZZCASH">JazzCash</option>
+          </select>
+
+          <select
+            className="px-2 py-1 rounded-lg border border-black/10 dark:border-white/10 text-sm bg-transparent"
+            value={filters.status}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, status: e.target.value as Filters["status"] }))
+            }
+          >
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="SENT">Sent</option>
+          </select>
         </div>
 
-        {/* Content */}
-        {loading ? (
+        {/* Table */}
+        {filtered === null ? (
           <TableSkel />
         ) : filtered.length === 0 ? (
-          <EmptyState
-            title="No transactions found"
-            body="Try widening your filters or clearing search."
-            ctaLabel="Reset filters"
-            ctaHref="/admin/transactions"
-          />
-        ) : (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs opacity-70">
-                <tr>
-                  <th className="px-3 py-2">ID</th>
-                  <th className="px-3 py-2">Created</th>
-                  <th className="px-3 py-2">Property</th>
-                  <th className="px-3 py-2">Method</th>
-                  <th className="px-3 py-2 text-right">Amount</th>
-                  <th className="px-3 py-2">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id} className="border-t border-black/5 dark:border-white/5">
-                    <td className="px-3 py-2 font-mono text-[11px]">{r.id}</td>
-                    <td className="px-3 py-2">
-                      {new Date(r.createdAt).toLocaleString("en-PK")}
-                    </td>
-                    <td className="px-3 py-2">{r.property}</td>
-                    <td className="px-3 py-2">{r.method}</td>
-                    <td className="px-3 py-2 text-right">{formatPKR(r.amount)}</td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`text-[10px] px-2 py-0.5 rounded ${
-                          r.status === "SENT"
-                            ? "bg-emerald-600 text-white"
-                            : "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
-                        }`}
-                      >
-                        {r.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-70">
+            No transactions found.
           </div>
+        ) : (
+          <ul className="space-y-2">
+            {filtered.map((p) => (
+              <li
+                key={p.id}
+                className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
+              >
+                <div className="text-sm">
+                  <div className="font-medium">{p.property}</div>
+                  <div className="text-xs opacity-70">
+                    {new Date(p.createdAt).toLocaleString("en-PK")} • {p.method} • {p.status}
+                  </div>
+                </div>
+                <div className="text-sm font-semibold">{formatPKR(p.amount)}</div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </AppShell>
