@@ -1,78 +1,116 @@
 // app/admin/page.tsx
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import MobileAppShell from "@/components/MobileAppShell";
+import { strings, type Lang } from "@/lib/i18n";
+import { loadPayments, type DemoPayment, formatPKR } from "@/lib/demo";
 
 export default function AdminHomePage() {
-  const cards = [
-    {
-      href: "/admin/payouts",
-      title: "Payouts Overview",
-      subtitle: "Weekly settlements across landlords",
-      emoji: "💸",
-      bg: "from-emerald-600 to-emerald-500",
-    },
-    {
-      href: "/admin/discrepancies",
-      title: "Discrepancy Report",
-      subtitle: "Expected vs paid, by landlord/tenant",
-      emoji: "⚠️",
-      bg: "from-amber-500 to-orange-500",
-    },
-    // If you have /admin/transactions already, keep this card. If not, remove it.
-    {
-      href: "/admin/transactions",
-      title: "Transactions",
-      subtitle: "All incoming rent payments (demo)",
-      emoji: "📄",
-      bg: "from-sky-500 to-indigo-500",
-    },
-  ];
+  const lang: Lang = "en";
+  const t = strings[lang];
+
+  const [all, setAll] = useState<DemoPayment[]>([]);
+
+  useEffect(() => {
+    setAll(loadPayments());
+  }, []);
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const THIRTY_DAYS = 1000 * 60 * 60 * 24 * 30;
+
+    const sent = all.filter((p) => p.status === "SENT");
+    const pending = all.filter((p) => p.status === "PENDING");
+
+    const last30 = sent.filter(
+      (p) => now - new Date(p.createdAt).getTime() <= THIRTY_DAYS
+    );
+    const total30 = last30.reduce((sum, p) => sum + p.amount, 0);
+
+    return {
+      totalCount: all.length,
+      sentCount: sent.length,
+      pendingCount: pending.length,
+      sent30Amount: total30,
+    };
+  }, [all]);
 
   return (
     <MobileAppShell>
-      <div className="p-4 space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-xl font-semibold">Admin</h1>
-          <p className="text-sm opacity-70">
-            Quick links to payouts, discrepancy monitoring and transactions.
-          </p>
+      <div className="p-4 space-y-5">
+        {/* Heading */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold">Admin</h1>
+            <p className="text-xs opacity-70">
+              Overview of transactions, payouts, and discrepancy reports
+            </p>
+          </div>
         </div>
 
-        {/* Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {cards.map((c) => (
-            <Link
-              key={c.href}
-              href={c.href}
-              className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden group"
-            >
-              <div
-                className={`p-5 bg-gradient-to-br ${c.bg} text-white flex items-center justify-between`}
-              >
-                <div className="text-2xl">{c.emoji}</div>
-                <div className="text-right">
-                  <div className="text-sm opacity-90">{c.title}</div>
-                  <div className="text-xs opacity-80">{c.subtitle}</div>
-                </div>
-              </div>
-              <div className="p-4 text-sm bg-white dark:bg-white/5 flex items-center justify-between">
-                <span className="opacity-70">Open</span>
-                <span className="opacity-70 group-hover:translate-x-0.5 transition-transform">
-                  →
-                </span>
-              </div>
-            </Link>
-          ))}
+        {/* KPI Cards */}
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs opacity-70">Transactions (30 days)</div>
+            <div className="mt-2 text-2xl font-semibold">
+              {formatPKR(stats.sent30Amount)}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs opacity-70">Sent</div>
+            <div className="mt-2 text-2xl font-semibold">
+              {stats.sentCount}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <div className="text-xs opacity-70">Pending</div>
+            <div className="mt-2 text-2xl font-semibold">
+              {stats.pendingCount}
+            </div>
+          </div>
         </section>
 
-        {/* Helpful tips / housekeeping */}
-        <section className="rounded-xl border border-black/10 dark:border-white/10 p-4 text-xs opacity-70 bg-white dark:bg-white/5">
-          This is a demo view — CSV exports live on each page. Data is local to
-          your browser (no real payments).
+        {/* Quick Links */}
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Link
+            href="/admin/transactions"
+            className="block rounded-2xl border border-black/10 bg-white p-4 hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          >
+            <div className="text-sm font-medium">Transactions</div>
+            <div className="mt-1 text-xs opacity-70">
+              Search, filter, and export CSV
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/payouts"
+            className="block rounded-2xl border border-black/10 bg-white p-4 hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          >
+            <div className="text-sm font-medium">Payouts Overview</div>
+            <div className="mt-1 text-xs opacity-70">
+              Weekly totals & CSV export
+            </div>
+          </Link>
+
+          <Link
+            href="/admin/discrepancies"
+            className="block rounded-2xl border border-black/10 bg-white p-4 hover:bg-black/5 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+          >
+            <div className="text-sm font-medium">Discrepancy Report</div>
+            <div className="mt-1 text-xs opacity-70">
+              Flagged items & CSV export
+            </div>
+          </Link>
         </section>
+
+        {/* Footer note */}
+        <div className="text-[11px] opacity-60">
+          App: {t.app} • Demo data only
+        </div>
       </div>
     </MobileAppShell>
   );
