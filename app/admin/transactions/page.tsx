@@ -1,146 +1,166 @@
-// app/admin/transactions/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
+import AppShell from "@/components/AppShell";
 import EmptyState from "@/components/EmptyState";
-import { TableSkeleton } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
-import {
-  type DemoPayment,
-  type Method,
-  loadPayments,
-  formatPKR,
-} from "@/lib/demo";
-import { toCSV, downloadCSV } from "@/lib/csv";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
+// Skeletons: use the shared names we standardized to
+import { TableSkel } from "@/components/Skeletons";
 
-type Filters = {
-  q: string;
-  method: "ALL" | Method;
-  status: "ALL" | "PENDING" | "SENT";
-};
+function formatPKR(v: number) {
+  return `Rs ${Math.round(v).toLocaleString("en-PK")}`;
+}
+
+// tiny CSV helper (safe & local); if you already have a shared one, you can swap it in.
+function exportCsv(rows: Array<Record<string, unknown>>, filename: string) {
+  if (!rows.length) return;
+  const headers = Object.keys(rows[0]);
+  const lines = [
+    headers.join(","),
+    ...rows.map((r) =>
+      headers
+        .map((h) => {
+          const cell = r[h];
+          const s = cell == null ? "" : String(cell);
+          // escape quotes
+          const escaped = s.replace(/"/g, '""');
+          // wrap if contains comma or quotes
+          return s.includes(",") || s.includes('"') ? `"${escaped}"` : escaped;
+        })
+        .join(",")
+    ),
+  ].join("\n");
+  const blob = new Blob([lines], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+type StatusFilter = "ALL" | "PENDING" | "SENT";
 
 export default function AdminTransactionsPage() {
   const lang: Lang = "en";
   const t = strings[lang];
 
   const [loading, setLoading] = useState(true);
-  const [all, setAll] = useState<DemoPayment[]>([]);
-  const [filters, setFilters] = useState<Filters>({
-    q: "",
-    method: "ALL",
-    status: "ALL",
-  });
+  const [rows, setRows] = useState<DemoPayment[]>([]);
+  const [status, setStatus] = useState<StatusFilter>("ALL");
+  const [q, setQ] = useState("");
 
   useEffect(() => {
-    setAll(loadPayments());
+    const all = loadPayments();
+    setRows(all);
     setLoading(false);
   }, []);
 
   const filtered = useMemo(() => {
-    return all
-      .filter((p) =>
-        filters.method === "ALL" ? true : p.method === filters.method
-      )
-      .filter((p) =>
-        filters.status === "ALL" ? true : p.status === filters.status
-      )
-      .filter((p) => {
-        const q = filters.q.trim().toLowerCase();
-        if (!q) return true;
-        return (
-          p.id.toLowerCase().includes(q) ||
-          p.property.toLowerCase().includes(q) ||
-          p.method.toLowerCase().includes(q)
-        );
-      });
-  }, [all, filters]);
+    return rows.filter((r) => {
+      if (status !== "ALL" && r.status !== status) return false;
+      if (!q.trim()) return true;
+      const hay = `${r.id} ${r.property} ${r.method}`.toLowerCase();
+      return hay.includes(q.trim().toLowerCase());
+    });
+  }, [rows, status, q]);
 
-  const exportCSV = () => {
-    const rows = filtered.map((p) => ({
-      id: p.id,
-      createdAt: p.createdAt,
-      status: p.status,
-      property: p.property,
-      amount: p.amount,
-      method: p.method,
-    }));
-    downloadCSV("transactions.csv", toCSV(rows));
+  const download = () => {
+    exportCsv(
+      filtered.map((r) => ({
+        id: r.id,
+        createdAt: r.createdAt,
+        property: r.property,
+        amount: r.amount,
+        method: r.method,
+        status: r.status,
+      })),
+      "transactions.csv"
+    );
   };
 
   return (
-    <MobileAppShell>
+    <AppShell role="admin" title="Transactions">
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Transactions</h1>
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+          <div className="flex gap-2">
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as StatusFilter)}
+              className="rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="SENT">Sent</option>
+            </select>
+            <input
+              placeholder="Search by property or method…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm"
+            />
+          </div>
           <button
-            onClick={exportCSV}
-            className="rounded-lg bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-700"
+            onClick={download}
+            className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm"
           >
             Export CSV
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <input
-            placeholder="Search by id/property/method"
-            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-            value={filters.q}
-            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-          />
-          <select
-            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-            value={filters.method}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, method: e.target.value as Filters["method"] }))
-            }
-          >
-            <option value="ALL">All methods</option>
-            <option value="RAAST">Raast</option>
-            <option value="BANK">Bank</option>
-            <option value="JAZZCASH">JazzCash</option>
-          </select>
-          <select
-            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-            value={filters.status}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, status: e.target.value as Filters["status"] }))
-            }
-          >
-            <option value="ALL">All status</option>
-            <option value="PENDING">Pending</option>
-            <option value="SENT">Sent</option>
-          </select>
-        </div>
-
-        {/* List */}
+        {/* Content */}
         {loading ? (
-          <TableSkeleton />
-        ) : !filtered.length ? (
+          <TableSkel />
+        ) : filtered.length === 0 ? (
           <EmptyState
             title="No transactions found"
-            body="Try widening your filters."
+            body="Try widening your filters or clearing search."
+            ctaLabel="Reset filters"
+            ctaHref="/admin/transactions"
           />
         ) : (
-          <ul className="divide-y divide-black/10 dark:divide-white/10 rounded-2xl border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5">
-            {filtered.map((p) => (
-              <li key={p.id} className="flex items-center justify-between p-3 text-sm">
-                <div>
-                  <div className="font-medium">{p.property}</div>
-                  <div className="text-xs opacity-70">
-                    {p.method} • {new Date(p.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold">{formatPKR(p.amount)}</div>
-                  <div className="text-xs opacity-70">{p.status}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-xs opacity-70">
+                <tr>
+                  <th className="px-3 py-2">ID</th>
+                  <th className="px-3 py-2">Created</th>
+                  <th className="px-3 py-2">Property</th>
+                  <th className="px-3 py-2">Method</th>
+                  <th className="px-3 py-2 text-right">Amount</th>
+                  <th className="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => (
+                  <tr key={r.id} className="border-t border-black/5 dark:border-white/5">
+                    <td className="px-3 py-2 font-mono text-[11px]">{r.id}</td>
+                    <td className="px-3 py-2">
+                      {new Date(r.createdAt).toLocaleString("en-PK")}
+                    </td>
+                    <td className="px-3 py-2">{r.property}</td>
+                    <td className="px-3 py-2">{r.method}</td>
+                    <td className="px-3 py-2 text-right">{formatPKR(r.amount)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded ${
+                          r.status === "SENT"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </MobileAppShell>
+    </AppShell>
   );
 }
