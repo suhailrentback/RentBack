@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useLang } from "@/components/providers/LanguageProvider";
+import { useLang } from "@/hooks/useLang";
 import { strings, type Lang, dirFor } from "@/lib/i18n";
 import RoleNavTenant from "@/components/nav/RoleNavTenant";
 import RoleNavLandlord from "@/components/nav/RoleNavLandlord";
