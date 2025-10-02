@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLang } from "@/components/providers/LanguageProvider";
+import { useLang } from "@/hooks/useLang";
 import { strings, type Lang } from "@/lib/i18n";
 import { cn } from "./_utils";
 
