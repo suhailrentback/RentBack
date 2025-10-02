@@ -1,131 +1,79 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import EmptyState from "@/components/EmptyState";
 import { TableSkel } from "@/components/Skeletons";
-import { loadPayments } from "@/lib/demo";
 
-function formatPKR(v: number) {
-  return `Rs ${Math.round(v).toLocaleString("en-PK")}`;
-}
+type PayoutRow = {
+  id: string;
+  week: string;
+  total: number;
+  count: number;
+};
 
-function exportCsv(rows: Array<Record<string, unknown>>, filename: string) {
-  if (!rows.length) return;
-  const headers = Object.keys(rows[0]);
-  const lines = [
-    headers.join(","),
-    ...rows.map((r) =>
-      headers
-        .map((h) => {
-          const cell = r[h];
-          const s = cell == null ? "" : String(cell);
-          const escaped = s.replace(/"/g, '""');
-          return s.includes(",") || s.includes('"') ? `"${escaped}"` : escaped;
-        })
-        .join(",")
-    ),
-  ].join("\n");
-  const blob = new Blob([lines], { type: "text/csv;charset=utf-8;" });
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
+
+function toCSV(rows: PayoutRow[]) {
+  const head = ["id", "week", "total", "count"];
+  const body = rows.map(r => [r.id, r.week, String(r.total), String(r.count)]);
+  const csv = [head, ...body].map(line => line.map(v => `"${v.replace?.(/"/g, '""') ?? v}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = `payouts_${Date.now()}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-// ISO week key
-function weekKey(d: Date) {
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((+date - +yearStart) / 86400000 + 1) / 7);
-  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
-}
-
-type Row = { week: string; count: number; total: number };
-
 export default function LandlordPayoutsPage() {
-  const [loading, setLoading] = useState(true);
-  const [rows, setRows] = useState<Row[]>([]);
+  const [rows, setRows] = useState<PayoutRow[] | null>(null);
 
   useEffect(() => {
-    const all = loadPayments().filter((p) => p.status === "SENT");
-    const map = new Map<string, { count: number; total: number }>();
-    all.forEach((p) => {
-      const k = weekKey(new Date(p.createdAt));
-      const prev = map.get(k) ?? { count: 0, total: 0 };
-      prev.count += 1;
-      prev.total += p.amount;
-      map.set(k, prev);
-    });
-    const table = Array.from(map.entries())
-      .map(([week, v]) => ({ week, count: v.count, total: v.total }))
-      .sort((a, b) => (a.week < b.week ? 1 : -1));
-    setRows(table);
-    setLoading(false);
+    // Demo rows
+    setRows([
+      { id: "py_2025w40", week: "2025-W40", total: 325000, count: 6 },
+      { id: "py_2025w41", week: "2025-W41", total: 291500, count: 5 },
+    ]);
   }, []);
 
-  const total = useMemo(() => rows.reduce((s, r) => s + r.total, 0), [rows]);
-
-  const download = () =>
-    exportCsv(
-      rows.map((r) => ({ week: r.week, count: r.count, total: r.total })),
-      "landlord_payouts.csv"
-    );
+  const exportCSV = () => rows && toCSV(rows);
 
   return (
     <AppShell role="landlord" title="Payouts">
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm opacity-70">
-            Settled totals by ISO week (SENT only)
-          </div>
+          <h1 className="text-lg font-semibold">Payouts</h1>
           <button
-            onClick={download}
-            className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-sm"
+            onClick={exportCSV}
+            disabled={!rows || rows.length === 0}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
           >
             Export CSV
           </button>
         </div>
 
-        {loading ? (
+        {rows === null ? (
           <TableSkel />
         ) : rows.length === 0 ? (
-          <EmptyState
-            title="No payouts yet"
-            body="No settled (SENT) payments to aggregate."
-            ctaLabel="Open Ledger"
-            ctaHref="/landlord/ledger"
-          />
-        ) : (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs opacity-70">
-                <tr>
-                  <th className="px-3 py-2">Week</th>
-                  <th className="px-3 py-2">Count</th>
-                  <th className="px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.week} className="border-t border-black/5 dark:border-white/5">
-                    <td className="px-3 py-2 font-mono text-[11px]">{r.week}</td>
-                    <td className="px-3 py-2">{r.count}</td>
-                    <td className="px-3 py-2 text-right">{formatPKR(r.total)}</td>
-                  </tr>
-                ))}
-                <tr className="border-t border-black/10 dark:border-white/10 font-medium">
-                  <td className="px-3 py-2">Total</td>
-                  <td className="px-3 py-2">{rows.reduce((s, r) => s + r.count, 0)}</td>
-                  <td className="px-3 py-2 text-right">{formatPKR(total)}</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-70">
+            No payouts found.
           </div>
+        ) : (
+          <ul className="space-y-2">
+            {rows.map((r) => (
+              <li
+                key={r.id}
+                className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
+              >
+                <div className="text-sm">
+                  <div className="font-medium">{r.week}</div>
+                  <div className="text-xs opacity-70">{r.count} receipts</div>
+                </div>
+                <div className="text-sm font-semibold">{formatPKR(r.total)}</div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </AppShell>
