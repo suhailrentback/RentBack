@@ -40,11 +40,12 @@ export default function LandlordPropertiesPage() {
   }, []);
 
   return (
-    <AppShell
-      role="landlord"
-      title={t.landlord.properties.title}
-      subtitle={t.landlord.properties.subtitle}
-    >
+    <AppShell role="landlord" title={t.landlord.properties.title}>
+      {/* Local subtitle (since AppShell has no subtitle prop) */}
+      <div className="px-4 pt-2 pb-0 text-xs opacity-70">
+        {t.landlord.properties.subtitle}
+      </div>
+
       <div className="p-4 space-y-3">
         {properties === null ? (
           <div className="h-16 rounded-lg bg-black/10 dark:bg-white/10 animate-pulse" />
@@ -67,7 +68,9 @@ export default function LandlordPropertiesPage() {
                   <tr key={p.id} className="border-t border-black/10 dark:border-white/10">
                     <td className="px-3 py-2">{p.name}</td>
                     <td className="px-3 py-2">{p.tenants}</td>
-                    <td className="px-3 py-2">Rs {Math.round(p.expected).toLocaleString(locale)}</td>
+                    <td className="px-3 py-2">
+                      Rs {Math.round(p.expected).toLocaleString(locale)}
+                    </td>
                     <td className="px-3 py-2">
                       {new Date(p.nextDueISO).toLocaleDateString(locale, {
                         year: "numeric",
