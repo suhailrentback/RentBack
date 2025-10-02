@@ -1,80 +1,69 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
+import { strings } from "@/lib/i18n";
+import { useLang } from "@/hooks/useLang";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
+import { exportToCSV } from "@/lib/csv";
 import { TableSkel } from "@/components/Skeletons";
-
-type PayoutRow = {
-  id: string;
-  week: string;
-  total: number;
-  count: number;
-};
 
 const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
-function toCSV(rows: PayoutRow[]) {
-  const head = ["id", "week", "total", "count"];
-  const body = rows.map(r => [r.id, r.week, String(r.total), String(r.count)]);
-  const csv = [head, ...body].map(line => line.map(v => `"${v.replace?.(/"/g, '""') ?? v}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `payouts_${Date.now()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function LandlordPayoutsPage() {
-  const [rows, setRows] = useState<PayoutRow[] | null>(null);
+  const { lang } = useLang();
+  const t = strings[lang];
 
-  useEffect(() => {
-    // Demo rows
-    setRows([
-      { id: "py_2025w40", week: "2025-W40", total: 325000, count: 6 },
-      { id: "py_2025w41", week: "2025-W41", total: 291500, count: 5 },
-    ]);
-  }, []);
+  const [rows, setRows] = useState<DemoPayment[] | null>(null);
+  useEffect(() => setRows(loadPayments().filter((p) => p.status === "SENT")), []);
 
-  const exportCSV = () => rows && toCSV(rows);
+  const csv = useMemo(
+    () =>
+      (rows ?? []).map((r) => ({
+        id: r.id,
+        createdAt: new Date(r.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK"),
+        property: r.property,
+        method: r.method,
+        amount: r.amount,
+        status: r.status,
+      })),
+    [rows, lang]
+  );
 
   return (
-    <AppShell role="landlord" title="Payouts">
+    <AppShell role="landlord" title={t.landlord.home.title}>
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-lg font-semibold">Payouts</h1>
+          <h1 className="text-xl font-semibold">{strings[lang].landlord.home.payouts?.title ?? "Payouts"}</h1>
           <button
-            onClick={exportCSV}
-            disabled={!rows || rows.length === 0}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
+            onClick={() => exportToCSV(csv, "payouts")}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
           >
-            Export CSV
+            CSV
           </button>
         </div>
 
-        {rows === null ? (
-          <TableSkel />
-        ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-70">
-            No payouts found.
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {rows.map((r) => (
-              <li
-                key={r.id}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
-              >
-                <div className="text-sm">
-                  <div className="font-medium">{r.week}</div>
-                  <div className="text-xs opacity-70">{r.count} receipts</div>
-                </div>
-                <div className="text-sm font-semibold">{formatPKR(r.total)}</div>
-              </li>
-            ))}
-          </ul>
-        )}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
+          {rows === null ? (
+            <TableSkel rows={6} />
+          ) : rows.length === 0 ? (
+            <div className="text-sm opacity-70">No data.</div>
+          ) : (
+            <ul className="divide-y divide-black/10 dark:divide-white/10">
+              {rows.map((p) => (
+                <li key={p.id} className="p-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{p.property}</div>
+                    <div className="text-xs opacity-70">
+                      {new Date(p.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")} • {p.method}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold">{formatPKR(p.amount)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </AppShell>
   );
