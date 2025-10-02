@@ -1,46 +1,71 @@
 // app/admin/transactions/page.tsx
 "use client";
+
 import { useEffect, useMemo, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import EmptyState from "@/components/EmptyState";
-import { TableSkel } from "@/components/Skeletons";
+import { TableSkeleton } from "@/components/Skeletons";
 import { strings, type Lang } from "@/lib/i18n";
-import { loadPayments, type DemoPayment, formatPKR } from "@/lib/demo";
+import {
+  type DemoPayment,
+  type Method,
+  loadPayments,
+  formatPKR,
+} from "@/lib/demo";
 import { toCSV, downloadCSV } from "@/lib/csv";
 
-type Filter = "ALL" | "SENT" | "PENDING";
+type Filters = {
+  q: string;
+  method: "ALL" | Method;
+  status: "ALL" | "PENDING" | "SENT";
+};
 
 export default function AdminTransactionsPage() {
-  const lang: Lang = typeof window !== "undefined" && localStorage.getItem("demo-lang") === "ur" ? "ur" : "en";
+  const lang: Lang = "en";
   const t = strings[lang];
 
   const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [filter, setFilter] = useState<Filter>("ALL");
+  const [all, setAll] = useState<DemoPayment[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    q: "",
+    method: "ALL",
+    status: "ALL",
+  });
 
   useEffect(() => {
-    setLoading(true);
-    setPayments(loadPayments());
+    setAll(loadPayments());
     setLoading(false);
   }, []);
 
   const filtered = useMemo(() => {
-    if (filter === "ALL") return payments;
-    return payments.filter((p) => p.status === filter);
-  }, [payments, filter]);
+    return all
+      .filter((p) =>
+        filters.method === "ALL" ? true : p.method === filters.method
+      )
+      .filter((p) =>
+        filters.status === "ALL" ? true : p.status === filters.status
+      )
+      .filter((p) => {
+        const q = filters.q.trim().toLowerCase();
+        if (!q) return true;
+        return (
+          p.id.toLowerCase().includes(q) ||
+          p.property.toLowerCase().includes(q) ||
+          p.method.toLowerCase().includes(q)
+        );
+      });
+  }, [all, filters]);
 
   const exportCSV = () => {
-    const csv = toCSV(
-      filtered.map((p) => ({
-        id: p.id,
-        date: p.createdAt,
-        property: p.property,
-        amount: p.amount,
-        method: p.method,
-        status: p.status,
-      }))
-    );
-    downloadCSV("admin-transactions.csv", csv);
+    const rows = filtered.map((p) => ({
+      id: p.id,
+      createdAt: p.createdAt,
+      status: p.status,
+      property: p.property,
+      amount: p.amount,
+      method: p.method,
+    }));
+    downloadCSV("transactions.csv", toCSV(rows));
   };
 
   return (
@@ -48,57 +73,72 @@ export default function AdminTransactionsPage() {
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Transactions</h1>
-          <div className="flex items-center gap-2">
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as Filter)}
-              className="px-2 py-1 rounded border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 text-sm"
-            >
-              <option value="ALL">All</option>
-              <option value="SENT">{t.tenant.pay.sent}</option>
-              <option value="PENDING">{t.tenant.pay.pending}</option>
-            </select>
-            <button
-              onClick={exportCSV}
-              className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
-            >
-              Export CSV
-            </button>
-          </div>
+          <button
+            onClick={exportCSV}
+            className="rounded-lg bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-700"
+          >
+            Export CSV
+          </button>
         </div>
 
+        {/* Filters */}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <input
+            placeholder="Search by id/property/method"
+            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
+            value={filters.q}
+            onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
+          />
+          <select
+            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
+            value={filters.method}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, method: e.target.value as Filters["method"] }))
+            }
+          >
+            <option value="ALL">All methods</option>
+            <option value="RAAST">Raast</option>
+            <option value="BANK">Bank</option>
+            <option value="JAZZCASH">JazzCash</option>
+          </select>
+          <select
+            className="rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
+            value={filters.status}
+            onChange={(e) =>
+              setFilters((f) => ({ ...f, status: e.target.value as Filters["status"] }))
+            }
+          >
+            <option value="ALL">All status</option>
+            <option value="PENDING">Pending</option>
+            <option value="SENT">Sent</option>
+          </select>
+        </div>
+
+        {/* List */}
         {loading ? (
-          <TableSkel />
-        ) : filtered.length === 0 ? (
+          <TableSkeleton />
+        ) : !filtered.length ? (
           <EmptyState
             title="No transactions found"
-            body="Try widening your date range or filters."
+            body="Try widening your filters."
           />
         ) : (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-black/[.03] dark:bg-white/[.03]">
-                <tr className="text-left">
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Property</th>
-                  <th className="p-3">Amount</th>
-                  <th className="p-3">Method</th>
-                  <th className="p-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((p) => (
-                  <tr key={p.id} className="border-t border-black/5 dark:border-white/10">
-                    <td className="p-3">{new Date(p.createdAt).toLocaleString()}</td>
-                    <td className="p-3">{p.property}</td>
-                    <td className="p-3">{formatPKR(p.amount)}</td>
-                    <td className="p-3">{p.method}</td>
-                    <td className="p-3">{p.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ul className="divide-y divide-black/10 dark:divide-white/10 rounded-2xl border border-black/10 dark:border-white/10 bg-white/50 dark:bg-white/5">
+            {filtered.map((p) => (
+              <li key={p.id} className="flex items-center justify-between p-3 text-sm">
+                <div>
+                  <div className="font-medium">{p.property}</div>
+                  <div className="text-xs opacity-70">
+                    {p.method} • {new Date(p.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-semibold">{formatPKR(p.amount)}</div>
+                  <div className="text-xs opacity-70">{p.status}</div>
+                </div>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </MobileAppShell>
