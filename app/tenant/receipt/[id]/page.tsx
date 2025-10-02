@@ -1,11 +1,10 @@
-// app/tenant/receipt/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import AppShell from "@/components/AppShell";
-import { strings, type Lang } from "@/lib/i18n";
+import { strings, type Lang, localeFor } from "@/lib/i18n";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
 
 const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
@@ -14,10 +13,10 @@ export default function TenantReceiptPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  const lang: Lang = "en"; // TODO: wire from store / context
+  // TODO: wire from store/context later
+  const lang: Lang = "en";
   const t = strings[lang];
 
-  // undefined = loading, null = not found, DemoPayment = found
   const [payment, setPayment] = useState<DemoPayment | null | undefined>(undefined);
 
   useEffect(() => {
@@ -64,12 +63,11 @@ export default function TenantReceiptPage() {
     );
   }
 
-  // Found
   return (
     <AppShell role="tenant" title={t.tenant.receipt.title} hideNav>
       {/* A4-ish printable card */}
       <div className="max-w-[800px] mx-auto bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-6 print:border-0 print:rounded-none print:p-0">
-        {/* Header */}
+        {/* header */}
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.title}</div>
@@ -87,7 +85,7 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
-        {/* Details grid */}
+        {/* details grid */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.tenant}</div>
@@ -112,7 +110,7 @@ export default function TenantReceiptPage() {
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.date}</div>
             <div className="font-medium">
-              {new Date(payment.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")}
+              {new Date(payment.createdAt).toLocaleString(localeFor(lang))}
             </div>
           </div>
           <div>
@@ -136,7 +134,7 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
-        {/* Footer actions (hidden in print) */}
+        {/* footer actions (hidden in print) */}
         <div className="mt-8 flex gap-2 print:hidden">
           <button onClick={() => router.back()} className="px-3 py-2 rounded-lg border text-sm">
             {t.tenant.receipt.backHome}
