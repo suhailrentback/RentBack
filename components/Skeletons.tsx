@@ -9,10 +9,7 @@ export function TableSkel() {
       <div className="h-9 bg-black/5 dark:bg-white/10" />
       <div className="divide-y divide-black/5 dark:divide-white/5">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-12 bg-black/5/50 dark:bg-white/5/50 animate-pulse"
-          />
+          <div key={i} className="h-12 bg-black/5/50 dark:bg-white/5/50 animate-pulse" />
         ))}
       </div>
     </div>
@@ -30,5 +27,5 @@ export function CardSkel() {
   );
 }
 
-/* ---- Back-compat aliases (some pages used these older names) ---- */
+/* Back-compat aliases */
 export { TableSkel as TableSkeleton, CardSkel as CardSkeleton };
