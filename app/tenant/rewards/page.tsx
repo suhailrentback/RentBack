@@ -35,7 +35,7 @@ export default function TenantRewardsPage() {
 
     const activityItem = {
       id,
-      type: "REDEEMED" as const,
+      type: "REDEEM" as const,        // 👈 FIX: must be "REDEEM"
       points: -pts,
       createdAt: new Date().toISOString(),
     };
