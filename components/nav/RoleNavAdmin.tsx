@@ -1,3 +1,4 @@
+// components/nav/RoleNavAdmin.tsx
 "use client";
 
 import Link from "next/link";
@@ -64,8 +65,4 @@ function DiscrepanciesIcon({ active }: { active?: boolean }) {
       <path d="M11 7h2v6h-2V7zm0 8h2v2h-2v-2zM12 2a10 10 0 100 20 10 10 0 000-20z" />
     </svg>
   );
-}
-
-function cn(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }
