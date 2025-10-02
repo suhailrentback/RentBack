@@ -1,35 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { strings, type Lang } from "@/lib/i18n";
-import {
-  formatPKR,
-  loadPayments,
-  loadRewards,
-  type DemoPayment,
-} from "@/lib/demo";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { strings, type Lang } from "@/lib/i18n";
+import { loadPayments, loadRewards, type DemoPayment, type RewardsState } from "@/lib/demo";
+
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function TenantHomePage() {
-  // FIX: use state so TypeScript treats lang as "en" | "ur", not the literal "en"
-  const [lang] = useState<Lang>("en");
+  const lang: Lang = "en"; // TODO: wire from global store
   const t = strings[lang];
 
-  const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [rewards, setRewards] = useState<number>(0); // store just the numeric balance
+  const [payments, setPayments] = useState<DemoPayment[] | null>(null);
+  const [rewards, setRewards] = useState<RewardsState | null>(null);
 
   useEffect(() => {
     setPayments(loadPayments());
-    const r = loadRewards();
-    setRewards(r.balance); // loadRewards() returns an object; we store only .balance
+    setRewards(loadRewards());
   }, []);
 
-  const last = useMemo(
-    () => payments.find((p) => p.status === "SENT"),
+  const lastSent = useMemo(
+    () => (payments ?? []).find((p) => p.status === "SENT"),
     [payments]
   );
 
+  // Simple “next due” placeholder for demo
   const nextDue = useMemo(() => {
     const today = new Date();
     const due = new Date(today.getFullYear(), today.getMonth() + 1, 5, 0, 0, 0);
@@ -40,114 +36,101 @@ export default function TenantHomePage() {
     });
   }, [lang]);
 
-  const suggestedAmount = 65000; // demo default PKR
-
   return (
-    <MobileAppShell>
-      <div className="p-4 space-y-5">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold">{t.tenant.home.title}</h1>
-            <div className="text-xs opacity-70">{t.tenant.home.subtitle}</div>
-          </div>
-          <div className="text-xs px-2 py-1 rounded-full bg-black/5 dark:bg-white/10">
-            {t.demo}
-          </div>
-        </div>
+    <AppShell role="tenant" title={t.tenant.home.title}>
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-xl font-semibold">{t.tenant.home.title}</h1>
+        <p className="text-xs opacity-70">{t.tenant.home.subtitle}</p>
+      </div>
 
-        {/* Main card: Rent due */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-gradient-to-br from-emerald-600 to-emerald-500 text-white p-5">
-          <div className="text-xs opacity-90">{t.tenant.home.rentDue}</div>
-          <div className="mt-1 text-2xl font-semibold tracking-wide">
-            {formatPKR(suggestedAmount)}
+      <div className="mt-4 grid grid-cols-1 gap-4">
+        {/* Rent due + quick pay */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <div className="text-xs opacity-70">{t.tenant.home.rentDue}</div>
+          <div className="mt-1 text-2xl font-semibold tracking-wide">{formatPKR(65000)}</div>
+          <div className="mt-1 text-xs opacity-70">Next due: {nextDue}</div>
+          <div className="mt-3">
+            <Link
+              href="/tenant/pay"
+              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-3 py-2"
+            >
+              {t.tenant.home.quickPay}
+            </Link>
           </div>
-          <div className="mt-1 text-xs opacity-90">Next due: {nextDue}</div>
-
-          <Link
-            href="/tenant/pay"
-            className="mt-4 inline-flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 px-4 py-2 text-sm font-medium backdrop-blur transition"
-          >
-            {t.tenant.home.quickPay}
-          </Link>
         </section>
 
-        {/* Secondary cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Rewards */}
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-            <div className="text-xs opacity-70">{t.tenant.home.rewardsBalance}</div>
-            <div className="mt-2 text-2xl font-semibold tabular-nums">
-              {rewards.toLocaleString()}
-            </div>
+        {/* Rewards balance */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <div className="text-xs opacity-70">{t.tenant.home.rewardsBalance}</div>
+          <div className="mt-1 text-2xl font-semibold tracking-wide">
+            {rewards ? rewards.balance : 0}
+          </div>
+          <div className="mt-2">
             <Link
               href="/tenant/rewards"
-              className="mt-3 inline-flex items-center text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-black/10 dark:border-white/10 text-sm px-3 py-2"
             >
               {t.tenant.home.shortcuts.rewards}
             </Link>
           </div>
+        </section>
 
-          {/* Last payment */}
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white dark:bg-white/5">
-            <div className="text-xs opacity-70">{t.tenant.home.lastPayment}</div>
-            {last ? (
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-sm">
-                  <div className="font-medium">{formatPKR(last.amount)}</div>
-                  <div className="text-xs opacity-70">
-                    {new Date(last.createdAt).toLocaleDateString(
-                      lang === "ur" ? "ur-PK" : "en-PK",
-                      { year: "numeric", month: "short", day: "2-digit" }
-                    )}
-                  </div>
-                </div>
+        {/* Last payment */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 bg-white dark:bg-white/5 p-4">
+          <div className="text-xs opacity-70">{t.tenant.home.lastPayment}</div>
+          {payments === null ? (
+            <div className="mt-2 h-6 w-40 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+          ) : lastSent ? (
+            <div className="mt-2 text-sm">
+              <div className="font-medium">{formatPKR(lastSent.amount)}</div>
+              <div className="text-xs opacity-70">
+                {new Date(lastSent.createdAt).toLocaleString()}
+              </div>
+              <div className="mt-2">
                 <Link
-                  href={`/tenant/receipt/${last.id}`}
-                  className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                  href={`/tenant/receipt/${lastSent.id}`}
+                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2 py-1"
                 >
                   {t.tenant.home.viewReceipt}
                 </Link>
               </div>
-            ) : (
-              <div className="mt-2 text-xs opacity-70">
-                {/* If no SENT payment in demo yet */}
-                {t.tenant.pay.subtitle}
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="mt-2 text-xs opacity-70">{t.tenant.rewards.empty}</div>
+          )}
         </section>
 
         {/* Shortcuts */}
-        <section>
-          <div className="grid grid-cols-4 gap-3">
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+          <div className="grid grid-cols-2 gap-2">
             <Link
               href="/tenant/pay"
-              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+              className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 text-sm"
             >
               {t.tenant.home.shortcuts.pay}
             </Link>
             <Link
               href="/tenant/rewards"
-              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+              className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 text-sm"
             >
               {t.tenant.home.shortcuts.rewards}
             </Link>
             <Link
-              href="/tenant/receipts"
-              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+              href="/tenant/receipt/p_demo"
+              className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 text-sm"
             >
               {t.tenant.home.shortcuts.receipts}
             </Link>
             <a
-              href="mailto:help@rentback.app"
-              className="rounded-xl border border-black/10 dark:border-white/10 p-3 text-center text-xs hover:bg-black/5 dark:hover:bg-white/5 transition"
+              href="#support"
+              className="rounded-lg border border-black/10 dark:border-white/10 px-3 py-2 text-sm"
             >
               {t.tenant.home.shortcuts.support}
             </a>
           </div>
         </section>
       </div>
-    </MobileAppShell>
+    </AppShell>
   );
 }
