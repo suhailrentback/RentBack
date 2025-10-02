@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { strings, type Lang } from "@/lib/i18n";
+import { useLang } from "@/hooks/useLang";
 import {
   type DemoPayment,
   type Method,
@@ -15,17 +15,22 @@ import {
 
 type FormState = {
   property: string;
-  amount: string; // keep as string for input
+  amount: string; // keep as string for input, convert to number when saving
   method: Method;
 };
 
+const formatPKR = (v: number, locale: Intl.LocalesArgument) =>
+  new Intl.NumberFormat(locale, { style: "currency", currency: "PKR", maximumFractionDigits: 0 })
+    .format(Math.round(v))
+    .replace("PKR", "Rs");
+
 export default function TenantPayPage() {
-  const lang: Lang = "en"; // TODO: wire from global store
-  const t = strings[lang];
+  const { t, locale } = useLang();
 
   const [payments, setPayments] = useState<DemoPayment[]>([]);
   const [rewards, setRewards] = useState<RewardsState | null>(null);
 
+  // Local form state
   const [form, setForm] = useState<FormState>({
     property: "",
     amount: "",
@@ -53,7 +58,7 @@ export default function TenantPayPage() {
     setForm((s) => ({ ...s, [key]: val }));
   }
 
-  // Create Payment (PENDING)
+  // Create Payment (status PENDING)
   async function handleCreatePayment() {
     if (!canCreate) return;
     setIsSubmitting(true);
@@ -67,7 +72,7 @@ export default function TenantPayPage() {
         property: form.property.trim(),
         amount: amountNumber,
         method: form.method,
-        status: "PENDING" as const,
+        status: "PENDING",
       };
 
       const next = [newPayment, ...payments];
@@ -79,16 +84,17 @@ export default function TenantPayPage() {
     }
   }
 
-  // Mark as SENT and credit +1% rewards (EARN)
+  // Mark as SENT and credit +1% rewards
   async function handleMarkSent() {
     if (!createdId) return;
     setIsSubmitting(true);
     try {
       const all = loadPayments();
-      const next = all.map((p) => (p.id === createdId ? { ...p, status: "SENT" as const } : p));
+      const next = all.map((p) => (p.id === createdId ? { ...p, status: "SENT" } : p));
       savePayments(next);
       setPayments(next);
 
+      // +1% rewards credit
       const credited = Math.round((next.find((p) => p.id === createdId)?.amount ?? 0) * 0.01);
 
       const prev = loadRewards();
@@ -112,91 +118,105 @@ export default function TenantPayPage() {
   }
 
   return (
-    <AppShell role="tenant" title={t.tenant.pay.title}>
-      {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">{t.tenant.pay.title}</h1>
-        <p className="text-xs opacity-70">{t.tenant.pay.subtitle}</p>
-      </div>
-
-      {/* Form Card */}
-      <section className="mt-4 rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-4">
-        {/* Property */}
-        <div className="space-y-1">
-          <label className="block text-xs opacity-70">{t.tenant.pay.property}</label>
-          <input
-            className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="e.g., 12-A, Sunset Apartments"
-            value={form.property}
-            onChange={(e) => onChange("property", e.target.value)}
-          />
-        </div>
-
-        {/* Amount */}
-        <div className="space-y-1">
-          <label className="block text-xs opacity-70">{t.tenant.pay.amount}</label>
-          <input
-            inputMode="decimal"
-            className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            placeholder="e.g., 75000"
-            value={form.amount}
-            onChange={(e) => onChange("amount", e.target.value)}
-          />
-          {amountNumber <= 0 && form.amount.length > 0 ? (
-            <div className="text-xs text-red-600">{t.tenant.pay.warnBelowDue}</div>
-          ) : null}
-        </div>
-
-        {/* Method */}
-        <div className="space-y-1">
-          <label className="block text-xs opacity-70">{t.tenant.pay.method}</label>
-          <select
-            className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-            value={form.method}
-            onChange={(e) => onChange("method", e.target.value as Method)}
-          >
-            <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
-            <option value="BANK">{t.tenant.pay.methods.BANK}</option>
-            <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
-          </select>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCreatePayment}
-            disabled={!canCreate}
-            className={`px-4 py-2 rounded-lg text-sm text-white ${
-              canCreate
-                ? "bg-emerald-600 hover:bg-emerald-700"
-                : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
-            }`}
-          >
-            {t.tenant.pay.create}
-          </button>
-
-          <button
-            onClick={handleMarkSent}
-            disabled={!createdId || isSubmitting}
-            className={`px-4 py-2 rounded-lg text-sm text-white ${
-              createdId && !isSubmitting
-                ? "bg-emerald-600 hover:bg-emerald-700"
-                : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
-            }`}
-          >
-            {t.tenant.pay.markSent}
-          </button>
-
-          {isSubmitting ? <span className="text-xs opacity-70">…</span> : null}
-        </div>
-
-        {/* Status */}
-        {createdId ? (
-          <div className="text-xs opacity-70">
-            {t.tenant.pay.receipt}: <span className="font-mono">{createdId}</span>
+    <AppShell role="tenant" title={t.tenant.pay.title} subtitle={t.tenant.pay.subtitle}>
+      <div className="p-4 space-y-5">
+        {/* Form Card */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-4">
+          {/* Property */}
+          <div className="space-y-1">
+            <label className="block text-xs opacity-70">{t.tenant.pay.property}</label>
+            <input
+              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="e.g., 12-A, Sunset Apartments"
+              value={form.property}
+              onChange={(e) => onChange("property", e.target.value)}
+            />
           </div>
-        ) : null}
-      </section>
+
+          {/* Amount */}
+          <div className="space-y-1">
+            <label className="block text-xs opacity-70">{t.tenant.pay.amount}</label>
+            <input
+              inputMode="decimal"
+              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              placeholder="e.g., 75000"
+              value={form.amount}
+              onChange={(e) => onChange("amount", e.target.value)}
+            />
+            {amountNumber <= 0 && form.amount.length > 0 ? (
+              <div className="text-xs text-red-600">{t.tenant.pay.warnBelowDue}</div>
+            ) : null}
+          </div>
+
+          {/* Method */}
+          <div className="space-y-1">
+            <label className="block text-xs opacity-70">{t.tenant.pay.method}</label>
+            <select
+              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+              value={form.method}
+              onChange={(e) => onChange("method", e.target.value as Method)}
+            >
+              <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
+              <option value="BANK">{t.tenant.pay.methods.BANK}</option>
+              <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
+            </select>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreatePayment}
+              disabled={!canCreate}
+              className={`px-4 py-2 rounded-lg text-sm text-white ${
+                canCreate ? "bg-emerald-600 hover:bg-emerald-700" : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
+              }`}
+            >
+              {t.tenant.pay.create}
+            </button>
+
+            <button
+              onClick={handleMarkSent}
+              disabled={!createdId || isSubmitting}
+              className={`px-4 py-2 rounded-lg text-sm text-white ${
+                createdId && !isSubmitting
+                  ? "bg-emerald-600 hover:bg-emerald-700"
+                  : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
+              }`}
+            >
+              {t.tenant.pay.markSent}
+            </button>
+
+            {isSubmitting ? <span className="text-xs opacity-70">…</span> : null}
+          </div>
+
+          {/* Status note */}
+          {createdId ? (
+            <div className="text-xs opacity-70">
+              {t.tenant.pay.receipt}: <span className="font-mono">{createdId}</span>
+            </div>
+          ) : null}
+        </section>
+
+        {/* Latest payment preview */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+          <div className="text-sm font-medium">{t.tenant.home.lastPayment}</div>
+          <div className="mt-2 text-xs opacity-70">
+            {payments.length
+              ? `${payments[0].property} • ${payments[0].method} • ${new Date(
+                  payments[0].createdAt
+                ).toLocaleString(locale)}`
+              : t.tenant.rewards.empty}
+          </div>
+        </section>
+
+        {/* Rewards summary */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+          <div className="text-sm font-medium">{t.tenant.rewards.title}</div>
+          <div className="mt-2 text-xs opacity-70">
+            {t.tenant.rewards.balance}: <span className="font-semibold">{rewards ? rewards.balance : 0} pts</span>
+          </div>
+        </section>
+      </div>
     </AppShell>
   );
 }
