@@ -1,112 +1,84 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { strings, type Lang } from "@/lib/i18n";
-import { loadPayments, formatPKR } from "@/lib/demo";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import AppShell from "@/components/AppShell";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
 
-type Method = "RAAST" | "BANK" | "JAZZCASH";
-type Status = "PENDING" | "SENT";
-type DemoPayment = {
-  id: string;
-  createdAt: string;
-  property: string;
-  amount: number;
-  method: Method;
-  status: Status;
-};
-
-// simple CSV helper
-function downloadCSV(filename: string, rows: string[][]) {
-  const csv = rows.map(r => r.map(c => `"${String(c).replaceAll('"', '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function LandlordLedgerPage() {
-  const lang: Lang = "en"; // keep simple to avoid i18n type noise; wire cookie later
-  const t = strings[lang];
-
-  const [rows, setRows] = useState<DemoPayment[]>([]);
+  const [payments, setPayments] = useState<DemoPayment[] | null>(null);
 
   useEffect(() => {
-    setRows(loadPayments());
+    setPayments(loadPayments());
   }, []);
 
-  const exportCSV = () => {
-    const header = ["ID", "Date", "Property", "Amount (PKR)", "Method", "Status"];
-    const data = rows.map(p => [
-      p.id,
-      new Date(p.createdAt).toLocaleString(),
-      p.property,
-      String(p.amount),
-      p.method,
-      p.status,
-    ]);
-    downloadCSV("ledger.csv", [header, ...data]);
-  };
+  const rows = useMemo(() => {
+    if (!payments) return [];
+    return [...payments].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [payments]);
 
   return (
-    <MobileAppShell>
+    <AppShell role="landlord" title="Ledger">
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">
-            {t.landlord.home.quickLinks.ledger /* "View Ledger" label */ }
-          </h1>
-          <button
-            onClick={exportCSV}
-            className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm"
-          >
-            CSV
-          </button>
-        </div>
-
-        {rows.length === 0 ? (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-80">
-            No rows yet.
+        {!payments ? (
+          <div className="h-24 rounded-xl bg-black/10 dark:bg-white/10 animate-pulse" />
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6">
+            <div className="text-sm font-medium">No transactions yet</div>
+            <div className="text-xs opacity-70 mt-1">New payments will appear here.</div>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {rows.map(p => (
-              <li
-                key={p.id}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{p.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(p.createdAt).toLocaleString()} · {p.method}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{formatPKR(p.amount)}</div>
-                    <div className="text-xs opacity-70">{p.status}</div>
-                  </div>
-                </div>
-
-                {/* View receipt link */}
-                <div className="mt-2 text-right">
-                  {p.status === "SENT" ? (
-                    <Link
-                      href={`/tenant/receipt/${p.id}`}
-                      className="inline-flex text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      View receipt
-                    </Link>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-black/5 dark:bg-white/10 text-xs">
+                <tr className="text-left">
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Property</th>
+                  <th className="px-4 py-2">Method</th>
+                  <th className="px-4 py-2">Amount</th>
+                  <th className="px-4 py-2">Status</th>
+                  <th className="px-4 py-2">Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p) => (
+                  <tr key={p.id} className="border-t border-black/10 dark:border-white/10">
+                    <td className="px-4 py-2">
+                      {new Date(p.createdAt).toLocaleString("en-PK")}
+                    </td>
+                    <td className="px-4 py-2">{p.property}</td>
+                    <td className="px-4 py-2">{p.method}</td>
+                    <td className="px-4 py-2 font-medium">{formatPKR(p.amount)}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded ${
+                          p.status === "SENT"
+                            ? "bg-emerald-600 text-white"
+                            : "bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <Link
+                        href={`/tenant/receipt/${p.id}`}
+                        className="text-xs px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+                      >
+                        View receipt
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </MobileAppShell>
+    </AppShell>
   );
 }
