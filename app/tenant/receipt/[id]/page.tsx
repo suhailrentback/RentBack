@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AppShell from "@/components/AppShell";
-import { strings, type Lang } from "@/lib/i18n";
+import { strings } from "@/lib/i18n";
+import { useLang } from "@/hooks/useLang";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
 import Link from "next/link";
-import { useLang } from "@/components/providers/LanguageProvider";
-import { formatDate, formatPKR } from "@/lib/locale";
+
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function TenantReceiptPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-
   const { lang } = useLang();
-  const t = strings[lang as Lang];
+  const t = strings[lang];
 
   const [payment, setPayment] = useState<DemoPayment | null | undefined>(undefined);
 
@@ -63,6 +63,7 @@ export default function TenantReceiptPage() {
   return (
     <AppShell role="tenant" title={t.tenant.receipt.title} hideNav>
       <div className="max-w-[800px] mx-auto bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-6 print:border-0 print:rounded-none print:p-0">
+        {/* header */}
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.title}</div>
@@ -80,6 +81,7 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
+        {/* details grid */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.tenant}</div>
@@ -95,7 +97,7 @@ export default function TenantReceiptPage() {
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.amount}</div>
-            <div className="font-medium">{formatPKR(lang as Lang, payment.amount)}</div>
+            <div className="font-medium">{formatPKR(payment.amount)}</div>
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.method}</div>
@@ -103,7 +105,9 @@ export default function TenantReceiptPage() {
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.date}</div>
-            <div className="font-medium">{formatDate(lang as Lang, payment.createdAt)}</div>
+            <div className="font-medium">
+              {new Date(payment.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")}
+            </div>
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.raast}</div>
@@ -115,6 +119,7 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
+        {/* QR (demo placeholder) */}
         <div className="mt-8 flex items-center justify-between">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.qrLabel}</div>
@@ -125,6 +130,7 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
+        {/* footer actions (hidden in print) */}
         <div className="mt-8 flex gap-2 print:hidden">
           <button onClick={() => router.back()} className="px-3 py-2 rounded-lg border text-sm">
             {t.tenant.receipt.backHome}
