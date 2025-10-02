@@ -1,9 +1,14 @@
 // lib/i18n.ts
 // Simple i18n bundle used by the demo. No JSX here—pure TypeScript only.
 
+import { createContext } from "react";
+
 export type Lang = "en" | "ur";
 
 export const dirFor = (lang: Lang) => (lang === "ur" ? "rtl" : "ltr");
+
+// ↓↓↓ Optional helper for date/number formatting locales
+export const localeFor = (lang: Lang): Intl.LocalesArgument => (lang === "ur" ? "ur-PK" : "en-PK");
 
 export const strings = {
   en: {
@@ -290,8 +295,13 @@ export const strings = {
       },
     },
   },
-};
+} as const;
 
-// ↓↓↓ ADD THIS SMALL HELPER ↓↓↓
-export const localeFor = (lang: Lang): Intl.LocalesArgument =>
-  lang === "ur" ? "ur-PK" : "en-PK";
+// --- i18n runtime glue (no JSX here) ---
+export const LangContext = createContext<{
+  lang: Lang;
+  setLang: (l: Lang) => void;
+}>({
+  lang: "en",
+  setLang: () => {},
+});
