@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { strings, type Lang } from "@/lib/i18n";
-import { useLang } from "@/hooks/useLang";
 import {
   type DemoPayment,
   type Method,
@@ -16,14 +15,12 @@ import {
 
 type FormState = {
   property: string;
-  amount: string; // keep as string for input
+  amount: string;
   method: Method;
 };
 
-const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
-
 export default function TenantPayPage() {
-  const { lang } = useLang(); // <- dynamic language
+  const lang: Lang = "en"; // TODO: wire from store/context
   const t = strings[lang];
 
   const [payments, setPayments] = useState<DemoPayment[]>([]);
@@ -56,6 +53,7 @@ export default function TenantPayPage() {
     setForm((s) => ({ ...s, [key]: val }));
   }
 
+  // Create Payment (status PENDING)
   async function handleCreatePayment() {
     if (!canCreate) return;
     setIsSubmitting(true);
@@ -69,7 +67,7 @@ export default function TenantPayPage() {
         property: form.property.trim(),
         amount: amountNumber,
         method: form.method,
-        status: "PENDING" as const,
+        status: "PENDING" as const, // ✅ fixed
       };
 
       const next = [newPayment, ...payments];
@@ -81,18 +79,19 @@ export default function TenantPayPage() {
     }
   }
 
+  // Mark as SENT and credit +1% rewards
   async function handleMarkSent() {
     if (!createdId) return;
     setIsSubmitting(true);
     try {
       const all = loadPayments();
       const next = all.map((p) =>
-        p.id === createdId ? { ...p, status: "SENT" as const } : p
+        p.id === createdId ? { ...p, status: "SENT" as const } : p // ✅ fixed
       );
       savePayments(next);
       setPayments(next);
 
-      // +1% rewards
+      // +1% rewards credit
       const credited = Math.round(
         (next.find((p) => p.id === createdId)?.amount ?? 0) * 0.01
       );
@@ -100,7 +99,7 @@ export default function TenantPayPage() {
       const prev = loadRewards();
       const activityItem = {
         id: `rw_${createdId}`,
-        type: "EARN" as const,
+        type: "EARN" as const, // ✅ fixed
         points: credited,
         createdAt: new Date().toISOString(),
       };
@@ -126,7 +125,7 @@ export default function TenantPayPage() {
           <p className="text-xs opacity-70">{t.tenant.pay.subtitle}</p>
         </div>
 
-        {/* Form */}
+        {/* Form Card */}
         <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-4">
           {/* Property */}
           <div className="space-y-1">
@@ -135,7 +134,7 @@ export default function TenantPayPage() {
             </label>
             <input
               className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="12-A, Sunset Apartments"
+              placeholder="e.g., 12-A, Sunset Apartments"
               value={form.property}
               onChange={(e) => onChange("property", e.target.value)}
             />
@@ -149,7 +148,7 @@ export default function TenantPayPage() {
             <input
               inputMode="decimal"
               className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="75000"
+              placeholder="e.g., 75000"
               value={form.amount}
               onChange={(e) => onChange("amount", e.target.value)}
             />
@@ -172,9 +171,7 @@ export default function TenantPayPage() {
             >
               <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
               <option value="BANK">{t.tenant.pay.methods.BANK}</option>
-              <option value="JAZZCASH">
-                {t.tenant.pay.methods.JAZZCASH}
-              </option>
+              <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
             </select>
           </div>
 
@@ -212,8 +209,7 @@ export default function TenantPayPage() {
           {/* Status note */}
           {createdId ? (
             <div className="text-xs opacity-70">
-              {t.tenant.pay.receipt}:{" "}
-              <span className="font-mono">{createdId}</span>
+              {t.tenant.pay.receipt}: <span className="font-mono">{createdId}</span>
             </div>
           ) : null}
         </section>
@@ -225,7 +221,7 @@ export default function TenantPayPage() {
             {payments.length
               ? `${payments[0].property} • ${payments[0].method} • ${new Date(
                   payments[0].createdAt
-                ).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")}`
+                ).toLocaleString()}`
               : t.tenant.rewards.empty}
           </div>
         </section>
