@@ -1,90 +1,69 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { TableSkel } from "@/components/Skeletons";
+import { strings } from "@/lib/i18n";
+import { useLang } from "@/hooks/useLang";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
-
-type Filters = {
-  method: "ALL" | "RAAST" | "BANK" | "JAZZCASH";
-  status: "ALL" | "PENDING" | "SENT";
-};
+import { exportToCSV } from "@/lib/csv";
+import { TableSkel } from "@/components/Skeletons";
 
 const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function AdminTransactionsPage() {
+  const { lang } = useLang();
+  const t = strings[lang];
+
   const [rows, setRows] = useState<DemoPayment[] | null>(null);
-  const [filters, setFilters] = useState<Filters>({ method: "ALL", status: "ALL" });
 
-  useEffect(() => {
-    setRows(loadPayments());
-  }, []);
+  useEffect(() => setRows(loadPayments()), []);
 
-  const filtered = useMemo(() => {
-    if (!rows) return null;
-    return rows.filter((r) => {
-      const m = filters.method === "ALL" || r.method === filters.method;
-      const s = filters.status === "ALL" || r.status === filters.status;
-      return m && s;
-    });
-  }, [rows, filters]);
+  const csv = useMemo(
+    () =>
+      (rows ?? []).map((r) => ({
+        id: r.id,
+        createdAt: new Date(r.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK"),
+        property: r.property,
+        method: r.method,
+        amount: r.amount,
+        status: r.status,
+      })),
+    [rows, lang]
+  );
 
   return (
     <AppShell role="admin" title="Transactions">
       <div className="p-4 space-y-4">
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2">
-          <select
-            className="px-2 py-1 rounded-lg border border-black/10 dark:border-white/10 text-sm bg-transparent"
-            value={filters.method}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, method: e.target.value as Filters["method"] }))
-            }
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Transactions</h1>
+          <button
+            onClick={() => exportToCSV(csv, "transactions")}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
           >
-            <option value="ALL">All methods</option>
-            <option value="RAAST">Raast</option>
-            <option value="BANK">Bank</option>
-            <option value="JAZZCASH">JazzCash</option>
-          </select>
-
-          <select
-            className="px-2 py-1 rounded-lg border border-black/10 dark:border-white/10 text-sm bg-transparent"
-            value={filters.status}
-            onChange={(e) =>
-              setFilters((f) => ({ ...f, status: e.target.value as Filters["status"] }))
-            }
-          >
-            <option value="ALL">All statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="SENT">Sent</option>
-          </select>
+            CSV
+          </button>
         </div>
 
-        {/* Table */}
-        {filtered === null ? (
-          <TableSkel />
-        ) : filtered.length === 0 ? (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-70">
-            No transactions found.
-          </div>
-        ) : (
-          <ul className="space-y-2">
-            {filtered.map((p) => (
-              <li
-                key={p.id}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-3 flex items-center justify-between"
-              >
-                <div className="text-sm">
-                  <div className="font-medium">{p.property}</div>
-                  <div className="text-xs opacity-70">
-                    {new Date(p.createdAt).toLocaleString("en-PK")} • {p.method} • {p.status}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
+          {rows === null ? (
+            <TableSkel rows={8} />
+          ) : rows.length === 0 ? (
+            <div className="text-sm opacity-70">No transactions found.</div>
+          ) : (
+            <ul className="divide-y divide-black/10 dark:divide-white/10">
+              {rows.map((p) => (
+                <li key={p.id} className="p-3 grid grid-cols-5 gap-2 items-center">
+                  <div className="text-xs opacity-70 col-span-2">
+                    {new Date(p.createdAt).toLocaleString(lang === "ur" ? "ur-PK" : "en-PK")}
                   </div>
-                </div>
-                <div className="text-sm font-semibold">{formatPKR(p.amount)}</div>
-              </li>
-            ))}
-          </ul>
-        )}
+                  <div className="text-sm font-medium">{p.property}</div>
+                  <div className="text-xs opacity-70">{p.method}</div>
+                  <div className="text-sm font-semibold text-right">{formatPKR(p.amount)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </AppShell>
   );
