@@ -1,3 +1,4 @@
+// components/nav/RoleNavLandlord.tsx
 "use client";
 
 import Link from "next/link";
@@ -40,7 +41,7 @@ export default function RoleNavLandlord({ currentPath }: Props) {
 function HomeIcon({ active }: { active?: boolean }) {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" className={active ? "scale-110" : ""} fill="currentColor">
-      <path d="M12 3l9 7h-3v9h-5v-6H11v6H6v-9H3z" />
+      <path d="M12 3l7 6v12h-5v-7H10v7H5V9l7-6z" />
     </svg>
   );
 }
@@ -64,8 +65,4 @@ function PropertiesIcon({ active }: { active?: boolean }) {
       <path d="M12 3l7 6v12h-5v-7H10v7H5V9l7-6z" />
     </svg>
   );
-}
-
-function cn(...classes: (string | false | null | undefined)[]) {
-  return classes.filter(Boolean).join(" ");
 }
