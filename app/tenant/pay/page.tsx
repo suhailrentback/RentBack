@@ -1,4 +1,3 @@
-// app/tenant/pay/page.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -111,7 +110,7 @@ export default function TenantPayPage() {
       const prev = loadRewards();
       const activityItem = {
         id: `rw_${createdId}`,
-        type: "EARNED" as const,
+        type: "EARN" as const,          // 👈 FIX: must be "EARN"
         points: credited,
         createdAt: new Date().toISOString(),
       };
