@@ -1,57 +1,53 @@
+// providers/LangProvider.tsx
 "use client";
 
-import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
-import { dirFor, strings, type Lang, localeFor } from "@/lib/i18n";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { strings, type Lang, dirFor, localeFor } from "@/lib/i18n";
+
+// Use a single compatible type for both locales to avoid literal-type conflicts
+type TStrings = typeof strings.en & typeof strings.ur;
 
 type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: typeof strings["en"];
+  t: TStrings;
   locale: Intl.LocalesArgument;
+  dir: "ltr" | "rtl";
 };
 
-export const LangContext = createContext<Ctx>({
-  lang: "en",
-  setLang: () => {},
-  t: strings.en,
-  locale: "en-PK",
-});
+const LanguageContext = createContext<Ctx | null>(null);
 
-const STORAGE_KEY = "rb.lang";
+export function useLang(): Ctx {
+  const ctx = useContext(LanguageContext);
+  if (!ctx) throw new Error("useLang must be used within <LangProvider>");
+  return ctx;
+}
 
 export default function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(() => {
+  const [lang, setLang] = useState<Lang>(() => {
     if (typeof window === "undefined") return "en";
-    const fromStore = window.localStorage.getItem(STORAGE_KEY) as Lang | null;
-    if (fromStore === "en" || fromStore === "ur") return fromStore;
-    // light auto-detect on first load
-    const nav = typeof navigator !== "undefined" ? navigator.language : "en";
-    return nav?.toLowerCase().startsWith("ur") ? "ur" : "en";
+    const fromLS = window.localStorage.getItem("rb_lang");
+    return fromLS === "ur" || fromLS === "en" ? (fromLS as Lang) : "en";
   });
 
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, l);
-    } catch {}
-  }, []);
-
-  // Keep <html> in sync so layout flips and a11y/lang attributes are correct
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    const html = document.documentElement;
-    html.setAttribute("dir", dirFor(lang));
-    html.setAttribute("lang", lang);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("rb_lang", lang);
+      document.documentElement.setAttribute("dir", dirFor(lang));
+      document.documentElement.setAttribute("lang", lang);
+    }
   }, [lang]);
 
   const value = useMemo<Ctx>(() => {
+    const t = strings[lang] as unknown as TStrings; // safe: both locales share the same shape
     return {
       lang,
       setLang,
-      t: strings[lang],
+      t,
       locale: localeFor(lang),
+      dir: dirFor(lang),
     };
-  }, [lang, setLang]);
+  }, [lang]);
 
-  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
