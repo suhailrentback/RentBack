@@ -2,20 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import AppShell from "@/components/AppShell";
-import { strings, type Lang, localeFor } from "@/lib/i18n";
+import { strings, type Lang } from "@/lib/i18n";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
-
-const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
+import Link from "next/link";
+import { useLang } from "@/components/providers/LanguageProvider";
+import { formatDate, formatPKR } from "@/lib/locale";
 
 export default function TenantReceiptPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
 
-  // TODO: wire from store/context later
-  const lang: Lang = "en";
-  const t = strings[lang];
+  const { lang } = useLang();
+  const t = strings[lang as Lang];
 
   const [payment, setPayment] = useState<DemoPayment | null | undefined>(undefined);
 
@@ -34,7 +33,6 @@ export default function TenantReceiptPage() {
     return <span className={`text-[10px] px-2 py-0.5 rounded ${cls}`}>{label}</span>;
   }, [payment, t]);
 
-  // Loading
   if (payment === undefined) {
     return (
       <AppShell role="tenant" title={t.tenant.receipt.title} hideNav>
@@ -43,7 +41,6 @@ export default function TenantReceiptPage() {
     );
   }
 
-  // Not found
   if (payment === null) {
     return (
       <AppShell role="tenant" title={t.tenant.receipt.title} hideNav>
@@ -65,9 +62,7 @@ export default function TenantReceiptPage() {
 
   return (
     <AppShell role="tenant" title={t.tenant.receipt.title} hideNav>
-      {/* A4-ish printable card */}
       <div className="max-w-[800px] mx-auto bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-2xl p-6 print:border-0 print:rounded-none print:p-0">
-        {/* header */}
         <div className="flex items-start justify-between">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.title}</div>
@@ -85,7 +80,6 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
-        {/* details grid */}
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.tenant}</div>
@@ -101,7 +95,7 @@ export default function TenantReceiptPage() {
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.amount}</div>
-            <div className="font-medium">{formatPKR(payment.amount)}</div>
+            <div className="font-medium">{formatPKR(lang as Lang, payment.amount)}</div>
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.method}</div>
@@ -109,9 +103,7 @@ export default function TenantReceiptPage() {
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.date}</div>
-            <div className="font-medium">
-              {new Date(payment.createdAt).toLocaleString(localeFor(lang))}
-            </div>
+            <div className="font-medium">{formatDate(lang as Lang, payment.createdAt)}</div>
           </div>
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.details.raast}</div>
@@ -123,7 +115,6 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
-        {/* QR (demo placeholder) */}
         <div className="mt-8 flex items-center justify-between">
           <div>
             <div className="text-xs opacity-70">{t.tenant.receipt.qrLabel}</div>
@@ -134,7 +125,6 @@ export default function TenantReceiptPage() {
           </div>
         </div>
 
-        {/* footer actions (hidden in print) */}
         <div className="mt-8 flex gap-2 print:hidden">
           <button onClick={() => router.back()} className="px-3 py-2 rounded-lg border text-sm">
             {t.tenant.receipt.backHome}
