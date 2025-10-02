@@ -1,8 +1,9 @@
 "use client";
 
 import { useContext } from "react";
-import { LangContext } from "@/lib/i18n";
+import { LangContext } from "@/providers/LangProvider";
 
 export function useLang() {
-  return useContext(LangContext); // { lang, setLang }
+  // Provides: lang, setLang, t (strings[lang]), locale
+  return useContext(LangContext);
 }
