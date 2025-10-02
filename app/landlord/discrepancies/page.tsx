@@ -1,93 +1,120 @@
 "use client";
 
-import { useMemo } from "react";
-import MobileAppShell from "@/components/MobileAppShell";
-import { strings } from "@/lib/i18n";
-import { loadPayments, formatPKR } from "@/lib/demo";
+import { useEffect, useMemo, useState } from "react";
+import AppShell from "@/components/AppShell";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
 
-// Simple CSV helper (same pattern used across other pages)
 function downloadCSV(filename: string, rows: string[][]) {
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+  const csv = rows.map((r) =>
+    r
+      .map((cell) => {
+        const s = String(cell ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      })
+      .join(",")
+  ).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export default function LandlordDiscrepanciesPage() {
-  const t = strings.en; // or pick from cookie if you already wired it—kept simple to prevent build breaks
+  const [payments, setPayments] = useState<DemoPayment[] | null>(null);
 
-  // A "discrepancy" is defined as: PENDING and amount < 65,000 (demo rule)
-  const discrepancies = useMemo(() => {
-    const all = loadPayments();
-    return all.filter(p => p.status === "PENDING" && p.amount < 65000);
+  useEffect(() => {
+    setPayments(loadPayments());
   }, []);
 
+  // Heuristic discrepancy: PENDING older than 3 days
+  const oldPendings = useMemo(() => {
+    if (!payments) return [];
+    const threeDays = 3 * 24 * 3600 * 1000;
+    const now = Date.now();
+    return payments.filter(
+      (p) => p.status === "PENDING" && now - new Date(p.createdAt).getTime() > threeDays
+    );
+  }, [payments]);
+
   function exportCSV() {
-    const header = ["ID", "Date", "Property", "Amount (PKR)", "Method", "Status"];
-    const rows = discrepancies.map(d => [
-      d.id,
-      new Date(d.createdAt).toLocaleDateString(),
-      d.property,
-      String(d.amount),
-      d.method,
-      d.status,
-    ]);
-    downloadCSV("landlord_discrepancies.csv", [header, ...rows]);
+    const rows: string[][] = [
+      ["id", "createdAt", "property", "method", "amount", "status", "ageDays"],
+      ...oldPendings.map((p) => [
+        p.id,
+        p.createdAt,
+        p.property,
+        p.method,
+        String(p.amount),
+        p.status,
+        String(Math.floor((Date.now() - new Date(p.createdAt).getTime()) / (24 * 3600 * 1000))),
+      ]),
+    ];
+    downloadCSV(`discrepancies-${new Date().toISOString().slice(0,10)}.csv`, rows);
   }
 
   return (
-    <MobileAppShell>
+    <AppShell role="landlord" title="Discrepancies">
       <div className="p-4 space-y-4">
-        {/* Header uses nested keys under landlord.home.discrepancies */}
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">
-            {t.landlord.home.discrepancies?.title ?? "Discrepancies"}
-          </h1>
+          <div className="text-sm font-medium">Pending &gt; 3 days</div>
           <button
             onClick={exportCSV}
-            className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-sm"
+            disabled={!oldPendings.length}
+            className={`px-3 py-1.5 rounded-lg text-sm ${
+              oldPendings.length
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                : "bg-black/20 dark:bg-white/20 text-white/70 cursor-not-allowed"
+            }`}
           >
-            CSV
+            Export CSV
           </button>
         </div>
-        <p className="text-sm opacity-70">
-          {t.landlord.home.discrepancies?.subtitle ?? "Payments below due or pending review"}
-        </p>
 
-        {discrepancies.length === 0 ? (
-          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 text-sm opacity-80">
-            No discrepancies found.
+        {!payments ? (
+          <div className="h-24 rounded-xl bg-black/10 dark:bg-white/10 animate-pulse" />
+        ) : oldPendings.length === 0 ? (
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6">
+            <div className="text-sm font-medium">No discrepancies detected</div>
+            <div className="text-xs opacity-70 mt-1">Everything looks up-to-date.</div>
           </div>
         ) : (
-          <ul className="space-y-2">
-            {discrepancies.map(d => (
-              <li
-                key={d.id}
-                className="rounded-xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{d.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(d.createdAt).toLocaleString()} · {d.method}
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{formatPKR(d.amount)}</div>
-                    <div className="text-xs text-amber-600">PENDING</div>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-black/5 dark:bg-white/10 text-xs">
+                <tr className="text-left">
+                  <th className="px-4 py-2">Date</th>
+                  <th className="px-4 py-2">Property</th>
+                  <th className="px-4 py-2">Method</th>
+                  <th className="px-4 py-2">Amount</th>
+                  <th className="px-4 py-2">Age (days)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {oldPendings.map((p) => (
+                  <tr key={p.id} className="border-t border-black/10 dark:border-white/10">
+                    <td className="px-4 py-2">
+                      {new Date(p.createdAt).toLocaleString("en-PK")}
+                    </td>
+                    <td className="px-4 py-2">{p.property}</td>
+                    <td className="px-4 py-2">{p.method}</td>
+                    <td className="px-4 py-2">{`Rs ${Math.round(p.amount).toLocaleString("en-PK")}`}</td>
+                    <td className="px-4 py-2">
+                      {Math.floor(
+                        (Date.now() - new Date(p.createdAt).getTime()) / (24 * 3600 * 1000)
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </MobileAppShell>
+    </AppShell>
   );
 }
