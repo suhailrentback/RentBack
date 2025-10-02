@@ -1,74 +1,61 @@
 // lib/csv.ts
-// Lightweight CSV helper used across Admin/Landlord pages
+// Tiny client-safe CSV exporter used by Admin/Landlord pages.
 
-export type CSVRow = Record<string, string | number | boolean | null | undefined>;
+export type CSVRow = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
 
-/** Turn rows into a CSV string (with optional explicit header order). */
-export function toCSV(rows: CSVRow[], headers?: string[]): string {
+function toCSV(rows: CSVRow[]): string {
   if (!rows || rows.length === 0) return "";
 
-  const keys =
-    headers && headers.length
-      ? headers
-      : Array.from(
-          rows.reduce<Set<string>>((acc, r) => {
-            Object.keys(r || {}).forEach((k) => acc.add(k));
-            return acc;
-          }, new Set<string>())
-        );
+  const headers = Array.from(
+    rows.reduce<Set<string>>((set, row) => {
+      Object.keys(row).forEach((k) => set.add(k));
+      return set;
+    }, new Set<string>())
+  );
 
   const escape = (val: unknown) => {
     if (val === null || val === undefined) return "";
     const s = String(val);
-    // quote if contains comma, quote or newline
-    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    // Quote if contains comma, quote or newline
+    if (/[",\n]/.test(s)) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
     return s;
   };
 
-  const headerLine = keys.join(",");
-  const lines = rows.map((row) => keys.map((k) => escape(row[k])).join(","));
-  return [headerLine, ...lines].join("\n");
-}
+  const lines = [
+    headers.join(","), // header row
+    ...rows.map((row) => headers.map((h) => escape(row[h])).join(",")),
+  ];
 
-/** Trigger a browser download of a CSV string. */
-export function downloadCSVString(filename: string, csv: string) {
-  // Add UTF-8 BOM so Excel recognizes Unicode
-  const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename.endsWith(".csv") ? filename : `${filename}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Prepend BOM so Excel opens UTF-8 correctly
+  return "\uFEFF" + lines.join("\n");
 }
 
 /**
- * Flexible export:
- * - exportToCSV("filename", rows, headers?)   // filename first
- * - exportToCSV(rows, "filename", headers?)   // rows first (matches some pages)
+ * Triggers a CSV download in the browser.
+ * Safe to call from client components only.
  */
-export function exportToCSV(
-  a: string | CSVRow[],
-  b: CSVRow[] | string,
-  headers?: string[]
-) {
-  let filename: string;
-  let rows: CSVRow[];
+export function exportToCSV(rows: CSVRow[], filename = "export") {
+  const csv = toCSV(rows);
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
 
-  if (typeof a === "string" && Array.isArray(b)) {
-    filename = a;
-    rows = b;
-  } else if (Array.isArray(a) && typeof b === "string") {
-    rows = a;
-    filename = b;
-  } else {
-    throw new Error(
-      'exportToCSV usage: either exportToCSV("filename", rows[, headers]) or exportToCSV(rows, "filename"[, headers])'
-    );
-  }
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
 
-  const csv = toCSV(rows, headers);
-  downloadCSVString(filename, csv);
+  // Cleanup
+  setTimeout(() => {
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 0);
 }
+
+// Provide both named and default export so pages can use either style
+export default exportToCSV;
