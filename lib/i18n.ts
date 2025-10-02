@@ -1,20 +1,9 @@
 // lib/i18n.ts
-// Pure TypeScript i18n bundle (no JSX). Backwards-compatible with pages
-// that referenced both old and new key shapes across tenant/landlord/admin.
+// Simple i18n bundle used by the demo. No JSX here—pure TypeScript only.
 
 export type Lang = "en" | "ur";
 
 export const dirFor = (lang: Lang) => (lang === "ur" ? "rtl" : "ltr");
-
-// Optional helper if a page wants the current language bundle.
-// (Pages can also directly use strings.en / strings.ur.)
-export function currentLang(): Lang {
-  if (typeof window !== "undefined") {
-    const v = window.localStorage.getItem("lang");
-    if (v === "en" || v === "ur") return v;
-  }
-  return "en";
-}
 
 export const strings = {
   en: {
@@ -22,21 +11,19 @@ export const strings = {
     demo: "Demo",
     needHelp: "Need help?",
     support: "Support",
-
     nav: { home: "Home" },
-    bottom: { home: "Home", pay: "Pay", rewards: "Rewards", profile: "Profile" },
-
-    // Provide BOTH shapes for toggles to avoid breakage
+    bottom: {
+      home: "Home",
+      pay: "Pay",
+      rewards: "Rewards",
+      profile: "Profile",
+    },
     toggles: {
       dark: "Dark",
       light: "Light",
-      urdu: "Urdu",
+      urdu: "اردو",
       english: "English",
-      theme: { dark: "Dark", light: "Light" },
-      lang: { english: "English", urdu: "Urdu" },
     },
-
-    // Top-level receipt (some pages referenced t.receipt.*)
     receipt: {
       title: "Payment Receipt",
       demo: "Demo: Not a real payment",
@@ -61,7 +48,6 @@ export const strings = {
         raast: "Raast Reference",
       },
     },
-
     tenant: {
       home: {
         title: "Dashboard",
@@ -97,8 +83,6 @@ export const strings = {
         receipt: "Receipt",
         print: "Print",
       },
-
-      // Duplicate of top-level receipt to satisfy pages using t.tenant.receipt.*
       receipt: {
         title: "Payment Receipt",
         demo: "Demo: Not a real payment",
@@ -123,7 +107,6 @@ export const strings = {
           raast: "Raast Reference",
         },
       },
-
       rewards: {
         title: "Rewards",
         balance: "Current balance",
@@ -132,10 +115,11 @@ export const strings = {
         earned: "Earned",
         redeemed: "Redeemed",
         voucherCode: "Voucher code",
-        progress: { toGold: "You're {{pts}} pts away from Gold Tier" },
+        progress: {
+          toGold: "You're {{pts}} pts away from Gold Tier",
+        },
         empty: "Make a rent payment to start earning points.",
       },
-
       profile: {
         title: "Profile",
         signOut: "Sign out (demo)",
@@ -144,43 +128,14 @@ export const strings = {
         needHelp: "Need Help?",
       },
     },
-
     landlord: {
       home: {
         title: "Landlord Dashboard",
         welcome: "Overview of payouts, ledger and properties",
-
-        // These lines were missing in a few failing builds:
-        rentCollected: "Rent collected (30 days)",
-        pendingCount: "Payments pending confirmation",
-        payoutsCard: "Payouts",
-        ledgerCard: "Ledger",
-        discrepanciesCard: "Discrepancies",
-        propertiesCard: "Properties",
-        lastPayment: "Last payment",
-        viewReceipt: "View receipt",
-        emptyLastPayment: "No recent payments",
-
         quickLinks: {
           ledger: "View Ledger",
-          payouts: "Payouts",
-          discrepancies: "Discrepancies",
-          properties: "Properties",
-        },
-
-        payouts: {
-          title: "Payouts",
-          next: "Next settlement",
-          day: "Friday",
-          none: "No payouts yet",
-        },
-
-        discrepancies: {
-          title: "Discrepancies",
-          subtitle: "Payments below due",
         },
       },
-
       properties: {
         title: "Properties",
         subtitle: "Manage your properties and tenants",
@@ -190,59 +145,27 @@ export const strings = {
         due: "Next Due",
         status: "Status",
         active: "Active",
-        tenant: "Tenant",
       },
     },
-
-    admin: {
-      home: {
-        title: "Admin",
-        cards: {
-          transactions: { title: "Transactions", subtitle: "Search & export" },
-          payouts: { title: "Payouts Overview", subtitle: "Weekly settlements" },
-          discrepancies: { title: "Discrepancies", subtitle: "Underpayments" },
-        },
-      },
-      transactions: {
-        title: "Transactions",
-        filter30: "Last 30 days",
-        exportCsv: "Export CSV",
-        none: "No transactions found",
-      },
-      payouts: {
-        title: "Payouts Overview",
-        exportCsv: "Export CSV",
-        none: "No payouts yet",
-      },
-      discrepancies: {
-        title: "Discrepancy Report",
-        exportCsv: "Export CSV",
-        none: "No discrepancies found",
-      },
-    },
-
-    legal: { privacy: "Privacy Policy", terms: "Terms of Service" },
   },
-
   ur: {
     app: "رينٹ بیک",
     demo: "ڈیمو",
     needHelp: "مدد چاہیے؟",
     support: "سپورٹ",
-
     nav: { home: "ہوم" },
-    bottom: { home: "ہوم", pay: "ادائیگی", rewards: "انعامات", profile: "پروفائل" },
-
-    // Both shapes for safety
+    bottom: {
+      home: "ہوم",
+      pay: "ادائیگی",
+      rewards: "انعامات",
+      profile: "پروفائل",
+    },
     toggles: {
       dark: "ڈارک",
       light: "لائٹ",
       urdu: "اردو",
       english: "English",
-      theme: { dark: "ڈارک", light: "لائٹ" },
-      lang: { english: "English", urdu: "اردو" },
     },
-
     receipt: {
       title: "ادائیگی کی رسید",
       demo: "ڈیمو: حقیقی ادائیگی نہیں",
@@ -267,7 +190,6 @@ export const strings = {
         raast: "راست حوالہ",
       },
     },
-
     tenant: {
       home: {
         title: "ڈیش بورڈ",
@@ -303,7 +225,6 @@ export const strings = {
         receipt: "رسید",
         print: "پرنٹ کریں",
       },
-
       receipt: {
         title: "ادائیگی کی رسید",
         demo: "ڈیمو: حقیقی ادائیگی نہیں",
@@ -328,7 +249,6 @@ export const strings = {
           raast: "راست حوالہ",
         },
       },
-
       rewards: {
         title: "انعامات",
         balance: "موجودہ بیلنس",
@@ -337,10 +257,11 @@ export const strings = {
         earned: "کمائے",
         redeemed: "چھڑائے",
         voucherCode: "واؤچر کوڈ",
-        progress: { toGold: "آپ گولڈ ٹائر سے {{pts}} پوائنٹس دور ہیں" },
+        progress: {
+          toGold: "آپ گولڈ ٹائر سے {{pts}} پوائنٹس دور ہیں",
+        },
         empty: "پوائنٹس کمانا شروع کرنے کے لیے کرایہ کی ادائیگی کریں۔",
       },
-
       profile: {
         title: "پروفائل",
         signOut: "سائن آؤٹ (ڈیمو)",
@@ -349,42 +270,14 @@ export const strings = {
         needHelp: "مدد چاہیے؟",
       },
     },
-
     landlord: {
       home: {
         title: "مکان مالک کا ڈیش بورڈ",
         welcome: "ادائیگیوں، لیجر اور جائیدادوں کا جائزہ",
-
-        rentCollected: "اکھٹا ہوا کرایہ (30 دن)",
-        pendingCount: "تصدیق کے منتظر",
-        payoutsCard: "ادائیگیاں",
-        ledgerCard: "کھاتہ",
-        discrepanciesCard: "فرق",
-        propertiesCard: "پراپرٹیز",
-        lastPayment: "آخری ادائیگی",
-        viewReceipt: "رسید دیکھیں",
-        emptyLastPayment: "کوئی حالیہ ادائیگی نہیں",
-
         quickLinks: {
           ledger: "لیجر دیکھیں",
-          payouts: "ادائیگیاں",
-          discrepancies: "فرق",
-          properties: "پراپرٹیز",
-        },
-
-        payouts: {
-          title: "ادائیگیاں",
-          next: "اگلی سیٹلمنٹ",
-          day: "جمعہ",
-          none: "ابھی تک کوئی ادائیگی نہیں",
-        },
-
-        discrepancies: {
-          title: "فرق",
-          subtitle: "واجب الادا سے کم ادائیگیاں",
         },
       },
-
       properties: {
         title: "جائیدادیں",
         subtitle: "اپنی جائیدادوں اور کرایہ داروں کا نظم کریں",
@@ -394,37 +287,11 @@ export const strings = {
         due: "اگلی تاریخ",
         status: "حیثیت",
         active: "فعال",
-        tenant: "کرایہ دار",
       },
     },
-
-    admin: {
-      home: {
-        title: "ایڈمن",
-        cards: {
-          transactions: { title: "ٹرانزیکشنز", subtitle: "تلاش اور ایکسپورٹ" },
-          payouts: { title: "ادائیگیوں کا خلاصہ", subtitle: "ہفتہ وار سیٹلمنٹ" },
-          discrepancies: { title: "فرق رپورٹ", subtitle: "کم ادائیگیاں" },
-        },
-      },
-      transactions: {
-        title: "ٹرانزیکشنز",
-        filter30: "آخری 30 دن",
-        exportCsv: "CSV ایکسپورٹ",
-        none: "کوئی ٹرانزیکشن نہیں",
-      },
-      payouts: {
-        title: "ادائیگیوں کا خلاصہ",
-        exportCsv: "CSV ایکسپورٹ",
-        none: "ابھی تک کوئی ادائیگی نہیں",
-      },
-      discrepancies: {
-        title: "فرق رپورٹ",
-        exportCsv: "CSV ایکسپورٹ",
-        none: "کوئی فرق نہیں ملا",
-      },
-    },
-
-    legal: { privacy: "رازداری پالیسی", terms: "سروس کی شرائط" },
   },
-} as const;
+};
+
+// ↓↓↓ ADD THIS SMALL HELPER ↓↓↓
+export const localeFor = (lang: Lang): Intl.LocalesArgument =>
+  lang === "ur" ? "ur-PK" : "en-PK";
