@@ -1,91 +1,85 @@
 // app/tenant/receipt/[id]/page.tsx
 "use client";
 
+import { useMemo } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
-import { strings, type Lang } from "@/lib/i18n";
-import { loadPayments, formatPKR } from "@/lib/demo";
+import { strings, type Lang, dirFor } from "@/lib/i18n";
+import { loadPayments } from "@/lib/demo";
 
 export default function TenantReceiptPage({
   params,
-}: {
-  params: { id: string };
-}) {
-  const lang: Lang = "en";
+}: { params: { id: string } }) {
+  const lang: Lang = "en"; // wire from store later
   const t = strings[lang];
-  const p = loadPayments().find((x) => x.id === params.id);
+  const dir = dirFor(lang);
 
-  if (!p) {
-    return (
-      <MobileAppShell>
-        <div className="p-4">
-          <div className="rounded-2xl border border-black/10 p-6 text-center dark:border-white/10">
-            <div className="text-sm font-medium">
-              {t.tenant.receipt.notFoundTitle}
-            </div>
-            <div className="mt-1 text-xs opacity-70">
-              {t.tenant.receipt.notFoundBody}
-            </div>
-          </div>
-        </div>
-      </MobileAppShell>
-    );
-  }
+  const payment = useMemo(
+    () => loadPayments().find(p => p.id === params.id),
+    [params.id]
+  );
 
   return (
     <MobileAppShell>
-      <div className="p-4 print:p-0">
-        <div className="mx-auto max-w-[794px] rounded-2xl border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-white print:rounded-none print:border-0 print:shadow-none">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-lg font-semibold">{t.tenant.receipt.title}</h1>
-              <div className="text-xs opacity-70">{t.tenant.receipt.demo}</div>
-            </div>
-            {/* Simple QR placeholder */}
-            <div className="h-20 w-20 rounded bg-black/10 dark:bg-white/20" />
-          </div>
+      <div className="p-4" dir={dir}>
+        <style>{`
+          @media print {
+            @page { size: A4; margin: 16mm; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            nav, footer { display: none !important; }
+          }
+        `}</style>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.property}</div>
-              <div className="font-medium">{p.property}</div>
-            </div>
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.method}</div>
-              <div className="font-medium">{p.method}</div>
-            </div>
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.amount}</div>
-              <div className="font-medium">{formatPKR(p.amount)}</div>
-            </div>
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.date}</div>
-              <div className="font-medium">{new Date(p.createdAt).toLocaleString()}</div>
-            </div>
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.status}</div>
-              <div className="font-medium">{p.status}</div>
-            </div>
-            <div>
-              <div className="opacity-70">{t.tenant.receipt.details.raast}</div>
-              <div className="font-mono text-xs">RB-{p.id.toUpperCase()}</div>
-            </div>
+        {!payment ? (
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6">
+            <h1 className="text-lg font-semibold">{t.receipt.notFoundTitle}</h1>
+            <p className="text-sm opacity-70 mt-2">{t.receipt.notFoundBody}</p>
           </div>
+        ) : (
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 p-6 space-y-4 bg-white dark:bg-white/5">
+            <div className="flex items-center justify-between">
+              <h1 className="text-lg font-semibold">{t.receipt.title}</h1>
+              {/* simple QR demo */}
+              <div className="text-[10px] opacity-70 text-right">
+                {t.receipt.qrLabel}
+                <div className="mt-1 h-12 w-12 bg-black/80 dark:bg-white/80" />
+              </div>
+            </div>
 
-          <div className="mt-6 flex items-center justify-between print:hidden">
-            <a
-              href="/tenant"
-              className="rounded-lg px-3 py-1 text-sm opacity-80 hover:opacity-100"
-            >
-              {t.tenant.receipt.backHome}
-            </a>
-            <button
-              onClick={() => window.print()}
-              className="rounded-lg bg-emerald-600 px-3 py-1 text-sm text-white hover:bg-emerald-700"
-            >
-              {t.tenant.receipt.print}
-            </button>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <div className="opacity-70">{t.receipt.details.property}</div>
+                <div className="font-medium">{payment.property}</div>
+              </div>
+              <div>
+                <div className="opacity-70">{t.receipt.details.amount}</div>
+                <div className="font-medium">PKR {payment.amount.toLocaleString()}</div>
+              </div>
+              <div>
+                <div className="opacity-70">{t.receipt.details.method}</div>
+                <div className="font-medium">{payment.method}</div>
+              </div>
+              <div>
+                <div className="opacity-70">{t.receipt.details.date}</div>
+                <div className="font-medium">
+                  {new Date(payment.createdAt).toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div className="opacity-70">{t.receipt.details.status}</div>
+                <div className="font-medium">{payment.status}</div>
+              </div>
+            </div>
+
+            <div className="pt-4 print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-lg text-sm text-white bg-emerald-600 hover:bg-emerald-700"
+              >
+                {t.receipt.print}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </MobileAppShell>
   );
