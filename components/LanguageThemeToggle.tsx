@@ -1,44 +1,46 @@
-// components/LanguageThemeToggle.tsx
+// components/ThemeLangToggle.tsx
 "use client";
-import { useEffect, useState } from "react";
-import { strings, type Lang, dirFor } from "@/lib/i18n";
 
-export default function LanguageThemeToggle() {
-  const [lang, setLang] = useState<Lang>(() =>
-    typeof window !== "undefined" && localStorage.getItem("demo-lang") === "ur" ? "ur" : "en"
-  );
-  const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== "undefined" && localStorage.getItem("demo-theme") === "dark"
-  );
+import { useEffect, useState } from "react";
+import { strings, type Lang } from "@/lib/i18n";
+
+export default function ThemeLangToggle() {
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [lang, setLang] = useState<Lang>("en");
+
   const t = strings[lang];
 
   useEffect(() => {
-    if (typeof document !== "undefined") {
-      document.documentElement.dir = dirFor(lang);
-    }
-    localStorage.setItem("demo-lang", lang);
-  }, [lang]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-    localStorage.setItem("demo-theme", dark ? "dark" : "light");
-  }, [dark]);
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    document.documentElement.setAttribute("dir", lang === "ur" ? "rtl" : "ltr");
+  }, [theme, lang]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 text-xs">
       <button
-        onClick={() => setLang((v) => (v === "en" ? "ur" : "en"))}
-        className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10"
-        title="Toggle language"
+        className={`px-2 py-1 rounded ${theme === "light" ? "bg-black/10 dark:bg-white/10" : ""}`}
+        onClick={() => setTheme("light")}
       >
-        {lang === "en" ? t.toggles.urdu : t.toggles.english}
+        {t.toggles.light}
       </button>
       <button
-        onClick={() => setDark((d) => !d)}
-        className="px-2 py-1 text-xs rounded-lg border border-black/10 dark:border-white/10"
-        title="Toggle theme"
+        className={`px-2 py-1 rounded ${theme === "dark" ? "bg-black/10 dark:bg-white/10" : ""}`}
+        onClick={() => setTheme("dark")}
       >
-        {dark ? t.toggles.light : t.toggles.dark}
+        {t.toggles.dark}
+      </button>
+      <span className="mx-1 opacity-40">|</span>
+      <button
+        className={`px-2 py-1 rounded ${lang === "en" ? "bg-black/10 dark:bg_WHITE/10" : ""}`}
+        onClick={() => setLang("en")}
+      >
+        {t.toggles.english}
+      </button>
+      <button
+        className={`px-2 py-1 rounded ${lang === "ur" ? "bg-black/10 dark:bg_WHITE/10" : ""}`}
+        onClick={() => setLang("ur")}
+      >
+        {t.toggles.urdu}
       </button>
     </div>
   );
