@@ -1,17 +1,18 @@
-import "./globals.css";
+// app/layout.tsx
 import type { Metadata } from "next";
-import { LanguageProvider } from "@/components/providers/LanguageProvider";
+import "./globals.css";
+import LangProvider from "@/providers/LangProvider";
 
 export const metadata: Metadata = {
   title: "RentBack",
-  description: "RentBack Demo",
+  description: "Demo",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning>
       <body>
-        <LanguageProvider>{children}</LanguageProvider>
+        <LangProvider>{children}</LangProvider>
       </body>
     </html>
   );
