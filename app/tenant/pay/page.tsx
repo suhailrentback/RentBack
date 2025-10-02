@@ -1,7 +1,7 @@
 // app/tenant/pay/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import MobileAppShell from "@/components/MobileAppShell";
 import { strings, type Lang } from "@/lib/i18n";
 import {
@@ -13,20 +13,22 @@ import {
   loadRewards,
   saveRewards,
 } from "@/lib/demo";
+import { CardSkel } from "@/components/Skeletons";
 
 type FormState = {
   property: string;
-  amount: string; // keep as string for input
+  amount: string; // keep as string for input, convert to number when saving
   method: Method;
 };
 
 export default function TenantPayPage() {
-  const lang: Lang = "en";
+  const lang: Lang = "en"; // wire from context/store later
   const t = strings[lang];
 
-  const [payments, setPayments] = useState<DemoPayment[]>([]);
+  const [payments, setPayments] = useState<DemoPayment[] | null>(null);
   const [rewards, setRewards] = useState<RewardsState | null>(null);
 
+  // Local form state
   const [form, setForm] = useState<FormState>({
     property: "",
     amount: "",
@@ -35,6 +37,9 @@ export default function TenantPayPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
+
+  // double-tap debounce
+  const clickLock = useRef(false);
 
   useEffect(() => {
     setPayments(loadPayments());
@@ -57,6 +62,8 @@ export default function TenantPayPage() {
   // Create Payment (status PENDING)
   async function handleCreatePayment() {
     if (!canCreate) return;
+    if (clickLock.current) return;
+    clickLock.current = true;
     setIsSubmitting(true);
     try {
       const id = `p_${Math.random().toString(36).slice(2, 10)}`;
@@ -68,25 +75,29 @@ export default function TenantPayPage() {
         property: form.property.trim(),
         amount: amountNumber,
         method: form.method,
-        status: "PENDING" as const,
+        status: "PENDING" as const, // important literal
       };
 
-      const next: DemoPayment[] = [newPayment, ...payments];
+      const existing = payments ?? [];
+      const next = [newPayment, ...existing];
       savePayments(next);
       setPayments(next);
       setCreatedId(id);
     } finally {
       setIsSubmitting(false);
+      setTimeout(() => (clickLock.current = false), 400); // quick debounce window
     }
   }
 
   // Mark as SENT and credit +1% rewards
   async function handleMarkSent() {
     if (!createdId) return;
+    if (clickLock.current) return;
+    clickLock.current = true;
     setIsSubmitting(true);
     try {
       const all = loadPayments();
-      const next: DemoPayment[] = all.map((p) =>
+      const next = all.map((p) =>
         p.id === createdId ? { ...p, status: "SENT" as const } : p
       );
       savePayments(next);
@@ -114,6 +125,7 @@ export default function TenantPayPage() {
       setRewards(updated);
     } finally {
       setIsSubmitting(false);
+      setTimeout(() => (clickLock.current = false), 400);
     }
   }
 
@@ -126,105 +138,128 @@ export default function TenantPayPage() {
           <p className="text-xs opacity-70">{t.tenant.pay.subtitle}</p>
         </div>
 
-        {/* Form Card */}
-        <section className="space-y-4 rounded-2xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-white/5">
-          {/* Property */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.property}</label>
-            <input
-              className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-              placeholder="e.g., 12-A, Sunset Apartments"
-              value={form.property}
-              onChange={(e) => onChange("property", e.target.value)}
-            />
-          </div>
+        {/* Loading skeletons */}
+        {payments === null || rewards === null ? (
+          <>
+            <CardSkel />
+            <CardSkel />
+          </>
+        ) : (
+          <>
+            {/* Form Card */}
+            <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-4">
+              {/* Property */}
+              <div className="space-y-1">
+                <label className="block text-xs opacity-70">
+                  {t.tenant.pay.property}
+                </label>
+                <input
+                  className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g., 12-A, Sunset Apartments"
+                  value={form.property}
+                  onChange={(e) => onChange("property", e.target.value)}
+                />
+              </div>
 
-          {/* Amount */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.amount}</label>
-            <input
-              inputMode="decimal"
-              className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-              placeholder="e.g., 75000"
-              value={form.amount}
-              onChange={(e) => onChange("amount", e.target.value)}
-            />
-            {amountNumber <= 0 && form.amount.length > 0 ? (
-              <div className="text-xs text-red-600">{t.tenant.pay.warnBelowDue}</div>
-            ) : null}
-          </div>
+              {/* Amount */}
+              <div className="space-y-1">
+                <label className="block text-xs opacity-70">
+                  {t.tenant.pay.amount}
+                </label>
+                <input
+                  inputMode="decimal"
+                  className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="e.g., 75000"
+                  value={form.amount}
+                  onChange={(e) => onChange("amount", e.target.value)}
+                />
+                {amountNumber <= 0 && form.amount.length > 0 ? (
+                  <div className="text-xs text-red-600">
+                    {t.tenant.pay.warnBelowDue}
+                  </div>
+                ) : null}
+              </div>
 
-          {/* Method */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.method}</label>
-            <select
-              className="w-full rounded-lg border border-black/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 dark:border-white/10"
-              value={form.method}
-              onChange={(e) => onChange("method", e.target.value as Method)}
-            >
-              <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
-              <option value="BANK">{t.tenant.pay.methods.BANK}</option>
-              <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
-            </select>
-          </div>
+              {/* Method */}
+              <div className="space-y-1">
+                <label className="block text-xs opacity-70">
+                  {t.tenant.pay.method}
+                </label>
+                <select
+                  className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={form.method}
+                  onChange={(e) => onChange("method", e.target.value as Method)}
+                >
+                  <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
+                  <option value="BANK">{t.tenant.pay.methods.BANK}</option>
+                  <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
+                </select>
+              </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleCreatePayment}
-              disabled={!canCreate}
-              className={`rounded-lg px-4 py-2 text-sm text-white ${
-                canCreate
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "cursor-not-allowed bg-black/20 dark:bg-white/20"
-              }`}
-            >
-              {t.tenant.pay.create}
-            </button>
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCreatePayment}
+                  disabled={!canCreate}
+                  className={`px-4 py-2 rounded-lg text-sm text-white ${
+                    canCreate
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
+                  }`}
+                >
+                  {t.tenant.pay.create}
+                </button>
 
-            <button
-              onClick={handleMarkSent}
-              disabled={!createdId || isSubmitting}
-              className={`rounded-lg px-4 py-2 text-sm text-white ${
-                createdId && !isSubmitting
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "cursor-not-allowed bg-black/20 dark:bg白/20"
-              }`}
-            >
-              {t.tenant.pay.markSent}
-            </button>
+                <button
+                  onClick={handleMarkSent}
+                  disabled={!createdId || isSubmitting}
+                  className={`px-4 py-2 rounded-lg text-sm text-white ${
+                    createdId && !isSubmitting
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
+                  }`}
+                >
+                  {t.tenant.pay.markSent}
+                </button>
 
-            {isSubmitting ? <span className="text-xs opacity-70">…</span> : null}
-          </div>
+                {isSubmitting ? (
+                  <span className="text-xs opacity-70">…</span>
+                ) : null}
+              </div>
 
-          {/* Status note */}
-          {createdId ? (
-            <div className="text-xs opacity-70">
-              {t.tenant.pay.receipt}: <span className="font-mono">{createdId}</span>
-            </div>
-          ) : null}
-        </section>
+              {/* Status note */}
+              {createdId ? (
+                <div className="text-xs opacity-70">
+                  {t.tenant.pay.receipt}:{" "}
+                  <span className="font-mono">{createdId}</span>
+                </div>
+              ) : null}
+            </section>
 
-        {/* Latest payment preview */}
-        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
-          <div className="text-sm font-medium">{t.tenant.home.lastPayment}</div>
-          <div className="mt-2 text-xs opacity-70">
-            {payments.length
-              ? `${payments[0].property} • ${payments[0].method} • ${new Date(
-                  payments[0].createdAt
-                ).toLocaleString()}`
-              : t.tenant.rewards.empty}
-          </div>
-        </section>
+            {/* Latest payment preview */}
+            <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+              <div className="text-sm font-medium">{t.tenant.home.lastPayment}</div>
+              <div className="mt-2 text-xs opacity-70">
+                {payments.length
+                  ? `${payments[0].property} • ${payments[0].method} • ${new Date(
+                      payments[0].createdAt
+                    ).toLocaleString()}`
+                  : t.tenant.rewards.empty}
+              </div>
+            </section>
 
-        {/* Rewards summary */}
-        <section className="rounded-2xl border border-black/10 p-4 dark:border-white/10">
-          <div className="text-sm font-medium">{t.tenant.rewards.title}</div>
-          <div className="mt-2 text-xs opacity-70">
-            {t.tenant.rewards.balance}:{" "}
-            <span className="font-semibold">{rewards ? rewards.balance : 0} pts</span>
-          </div>
-        </section>
+            {/* Rewards summary */}
+            <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+              <div className="text-sm font-medium">{t.tenant.rewards.title}</div>
+              <div className="mt-2 text-xs opacity-70">
+                {t.tenant.rewards.balance}:{" "}
+                <span className="font-semibold">
+                  {rewards ? rewards.balance : 0} pts
+                </span>
+              </div>
+            </section>
+          </>
+        )}
       </div>
     </MobileAppShell>
   );
