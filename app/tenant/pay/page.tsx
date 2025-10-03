@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
+import { type Status } from "@/lib/demo";
 import {
   type DemoPayment,
   type Method,
