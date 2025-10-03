@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { Brand } from "@/components/Brand";
 
 export default function LandingPage() {
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -41,11 +42,11 @@ export default function LandingPage() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur">
         <div className="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
-            <Logo />
-            <span>RentBack</span>
-          </div>
-          <div className="flex items-center gap-2">
+          <Brand />
+          <nav className="flex items-center gap-2">
+            <Link href="/founder" className="px-3 py-2 text-sm rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+              {t.founder}
+            </Link>
             <button
               onClick={() => setLang((p) => (p === "en" ? "ur" : "en"))}
               className="px-3 py-2 text-sm rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
@@ -66,7 +67,7 @@ export default function LandingPage() {
             >
               {t.signIn}
             </Link>
-          </div>
+          </nav>
         </div>
       </header>
 
@@ -135,27 +136,21 @@ export default function LandingPage() {
         {/* Footer */}
         <footer className="py-10 text-xs opacity-70">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>© {new Date().getFullYear()} RentBack</span>
+            <span>© {new Date().getFullYear()} RentBack Technologies (SMC-Private) Limited</span>
+            <div className="text-left">
+              <div>Registered with SECP under Companies Act, 2017</div>
+              <div>Registered office: 4th Floor, Building 56C, Street 7, Badar Commercial, DHA Phase 5, Karachi</div>
+            </div>
             <div className="flex gap-4">
-              <Link href="/privacy" className="hover:opacity-100 opacity-80">Privacy</Link>
-              <Link href="/founder" className="hover:opacity-100 opacity-80">Founder</Link>
-              <a href="#" className="hover:opacity-100 opacity-80">Terms</a>
-              <a href="mailto:founders@rentback.pk" className="hover:opacity-100 opacity-80">Contact</a>
+              <Link href="/privacy" className="hover:opacity-100 opacity-80">{t.privacy}</Link>
+              <Link href="/founder" className="hover:opacity-100 opacity-80">{t.founder}</Link>
+              <a href="#" className="hover:opacity-100 opacity-80">{t.terms}</a>
+              <a href="mailto:founders@rentback.pk" className="hover:opacity-100 opacity-80">{t.contact}</a>
             </div>
           </div>
         </footer>
       </main>
     </div>
-  );
-}
-
-function Logo({ size = 22, stroke = "#059669" }: { size?: number; stroke?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M3 11.5L12 4l9 7.5" />
-      <path d="M5 10v9h14v-9" />
-    </svg>
   );
 }
 
@@ -179,6 +174,10 @@ function MockCard() {
 const copy = {
   en: {
     signIn: "Sign in",
+    founder: "Founder",
+    privacy: "Privacy",
+    terms: "Terms",
+    contact: "Contact",
     h1a: "Pay rent, earn",
     h1b: "rewards.",
     sub: "A modern rent-payments experience for Pakistan — Raast, cards & wallets, and a local rewards marketplace.",
@@ -193,6 +192,10 @@ const copy = {
   },
   ur: {
     signIn: "سائن اِن",
+    founder: "بانی",
+    privacy: "پرائیویسی",
+    terms: "شرائط",
+    contact: "رابطہ",
     h1a: "کرایہ ادا کریں،",
     h1b: "انعامات حاصل کریں۔",
     sub: "پاکستان کے لیے جدید کرایہ ادائیگی کا تجربہ — راست، کارڈز اور والیٹس، اور مقامی ریوارڈز مارکیٹ پلیس۔",
