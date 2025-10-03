@@ -139,7 +139,6 @@ export default function LandingPage() {
             <span>© {new Date().getFullYear()} RentBack Technologies (SMC-Private) Limited</span>
             <div className="text-left">
               <div>Registered with SECP under Companies Act, 2017</div>
-              <div>Registered office: 4th Floor, Building 56C, Street 7, Badar Commercial, DHA Phase 5, Karachi</div>
             </div>
             <div className="flex gap-4">
               <Link href="/privacy" className="hover:opacity-100 opacity-80">{t.privacy}</Link>
