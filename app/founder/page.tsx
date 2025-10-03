@@ -1,77 +1,84 @@
+// app/founder/page.tsx
+"use client";
+
 import Link from "next/link";
+import AppShell from "@/components/AppShell";
+import { useLang } from "@/hooks/useLang";
 
 export default function FounderPage() {
+  const { lang } = useLang();
+
+  const L =
+    lang === "ur"
+      ? {
+          title: "بانی",
+          byline: "سہیل — رینٹ بیک کے بانی",
+          mission:
+            "ہم کرایہ داروں کے لیے ادائیگی کو آسان، شفاف اور انعامی بناتے ہیں۔",
+          card1Title: "ہمارا وژن",
+          card1Body:
+            "پاکستان میں کرایہ کی ادائیگی کو بینک ٹرانسفر اور RAAST کے ذریعے محفوظ اور فوری بنانا۔",
+          card2Title: "ہم کیا بنا رہے ہیں",
+          card2Body:
+            "کرایہ کی ادائیگیاں، خودکار رسیدیں، اور حقیقی انعامات — ایک سادہ ایپ میں۔",
+          contactCta: "سپورٹ سے رابطہ",
+          contactHint: "کسی بھی سوال کے لیے"
+        }
+      : {
+          title: "Founder",
+          byline: "Suhail — Founder at RentBack",
+          mission:
+            "We make rent payments simple, transparent, and rewarding for tenants.",
+          card1Title: "Our vision",
+          card1Body:
+            "Modernize rent in Pakistan with secure, instant RAAST & bank transfers.",
+          card2Title: "What we're building",
+          card2Body:
+            "Rent payments, automatic receipts, and real rewards — in one simple app.",
+          contactCta: "Contact Support",
+          contactHint: "Have a question?"
+        };
+
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-[#0b0b0b] text-slate-900 dark:text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between p-6">
-        <div className="flex items-center gap-2">
-          <img src="/logo.svg" alt="RentBack" className="h-8 w-8" />
-          <span className="text-xl font-bold">RentBack</span>
-        </div>
-        <nav className="flex items-center gap-6">
-          <Link href="/" className="hover:underline">Home</Link>
-          <Link href="/sign-in" className="hover:underline">Sign In</Link>
-        </nav>
-      </header>
-
-      {/* Content */}
-      <main className="flex-1 px-6">
-        <section className="max-w-3xl mx-auto py-10">
-          <div className="flex items-center gap-4 mb-6">
-            {/* Simple avatar fallback (uses tailwind classes only) */}
-            <div className="h-16 w-16 rounded-full bg-brand/10 border border-brand/30 grid place-items-center">
-              <span className="text-brand font-bold text-lg">SA</span>
+    <AppShell title={L.title}>
+      <div className="p-4 space-y-4">
+        {/* Hero card */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-5 bg-white/50 dark:bg-white/5 backdrop-blur">
+          <div className="flex items-start gap-4">
+            <div className="h-12 w-12 rounded-xl bg-emerald-600/10 flex items-center justify-center">
+              <span className="text-lg">🌱</span>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Founder</h1>
-              <p className="opacity-70">Suhail Ahmed · Karachi, PK</p>
+            <div className="flex-1">
+              <h2 className="text-base font-semibold">{L.byline}</h2>
+              <p className="text-sm opacity-80 mt-1">{L.mission}</p>
             </div>
-          </div>
-
-          <p className="leading-7 opacity-90 mb-4">
-            RentBack helps tenants in Pakistan pay rent seamlessly via Raast,
-            cards, and wallets — and earn meaningful rewards on every rent cycle.
-            Landlords get clearer visibility and faster settlement. Our goal is a
-            trusted, modern, SBP-aligned experience that turns rent from a cost
-            center into a financial on-ramp.
-          </p>
-
-          <p className="leading-7 opacity-90 mb-4">
-            We’re preparing for the State Bank of Pakistan regulatory sandbox and
-            building a compliant, privacy-first product with transparent fees,
-            local language support (English/Urdu), and first-class dark/light
-            themes for accessibility.
-          </p>
-
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <a
-              href="mailto:help@rentback.app"
-              className="px-4 py-2 rounded-lg bg-brand text-white font-medium shadow hover:opacity-90 transition"
-            >
-              Contact
-            </a>
-            <Link
-              href="/privacy"
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 transition"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/"
-              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900 transition"
-            >
-              Back to Home
-            </Link>
           </div>
         </section>
-      </main>
 
-      {/* Footer */}
-      <footer className="p-6 border-t border-slate-200 dark:border-slate-800 text-sm flex justify-center gap-6 opacity-75">
-        <Link href="/privacy" className="hover:underline">Privacy</Link>
-        <Link href="/founder" className="hover:underline">Founder</Link>
-      </footer>
-    </div>
+        {/* Two small info cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+            <h3 className="text-sm font-medium">{L.card1Title}</h3>
+            <p className="text-sm opacity-80 mt-1">{L.card1Body}</p>
+          </section>
+
+          <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+            <h3 className="text-sm font-medium">{L.card2Title}</h3>
+            <p className="text-sm opacity-80 mt-1">{L.card2Body}</p>
+          </section>
+        </div>
+
+        {/* Contact */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 flex items-center justify-between">
+          <div className="text-sm opacity-80">{L.contactHint}</div>
+          <Link
+            href="/support"
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
+          >
+            {L.contactCta}
+          </Link>
+        </section>
+      </div>
+    </AppShell>
   );
 }
