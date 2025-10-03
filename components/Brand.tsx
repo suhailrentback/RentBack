@@ -1,0 +1,53 @@
+// components/Brand.tsx
+import * as React from "react";
+import clsx from "clsx";
+
+type LogoProps = { size?: number; stroke?: string; className?: string };
+
+export function Logo({ size = 22, stroke = "#059669", className }: LogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={stroke}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className={className}
+    >
+      <path d="M3 11.5L12 4l9 7.5" />
+      <path d="M5 10v9h14v-9" />
+    </svg>
+  );
+}
+
+/**
+ * Brand = Logo + wordmark "RentBack"
+ * Use everywhere (headers, navs) for consistent look.
+ */
+export function Brand({
+  size = 22,
+  stroke = "#059669",
+  className,
+  textClassName,
+}: {
+  size?: number;
+  stroke?: string;
+  className?: string;
+  textClassName?: string;
+}) {
+  return (
+    <span
+      className={clsx(
+        "inline-flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400",
+        className
+      )}
+    >
+      <Logo size={size} stroke={stroke} />
+      <span className={textClassName}>RentBack</span>
+    </span>
+  );
+}
