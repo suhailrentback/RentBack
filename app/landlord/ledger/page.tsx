@@ -1,63 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { useLang } from "@/hooks/useLang";
-import { loadPayments, type DemoPayment } from "@/lib/demo";
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { loadPayments, type DemoPayment } from "@/lib/demo";
+import { useLang } from "@/hooks/useLang";
+import { exportToCSV } from "@/lib/csv";
+import { TableSkel } from "@/components/Skeletons";
 
-const currency = (n: number, locale: Intl.LocalesArgument) =>
-  new Intl.NumberFormat(locale, { style: "currency", currency: "PKR", maximumFractionDigits: 0 })
-    .format(Math.round(n))
-    .replace("PKR", "Rs");
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function LandlordLedgerPage() {
   const { lang, locale } = useLang();
   const [rows, setRows] = useState<DemoPayment[] | null>(null);
 
-  const labels = {
-    en: { title: "Ledger", property: "Property", date: "Date", method: "Method", amount: "Amount", receipt: "Receipt" },
-    ur: { title: "لیجر", property: "پراپرٹی", date: "تاریخ", method: "طریقہ", amount: "رقم", receipt: "رسید" },
-  }[lang];
-
   useEffect(() => {
     setRows(loadPayments());
   }, []);
 
+  const L = lang === "ur"
+    ? {
+        title: "لیجر",
+        export: "CSV",
+        receipt: "رسید",
+      }
+    : {
+        title: "Ledger",
+        export: "CSV",
+        receipt: "Receipt",
+      };
+
+  const csv = useMemo(() => {
+    if (!rows) return "";
+    const header = ["id", "createdAt", "property", "method", "amount", "status"];
+    const body = rows.map((r) => [
+      r.id,
+      new Date(r.createdAt).toLocaleString(locale),
+      r.property,
+      r.method,
+      String(r.amount),
+      r.status,
+    ]);
+    return [header, ...body].map((a) => a.map((s) => `"${String(s).replace(/"/g, '""')}"`).join(",")).join("\n");
+  }, [rows, locale]);
+
   return (
-    <AppShell role="landlord" title={labels.title}>
+    <AppShell role="landlord" title={L.title}>
       <div className="p-4 space-y-4">
-        <section className="rounded-2xl border border-black/10 dark:border-white/10">
-          <div className="grid grid-cols-12 px-3 py-2 text-xs opacity-70">
-            <div className="col-span-4">{labels.property}</div>
-            <div className="col-span-3">{labels.date}</div>
-            <div className="col-span-2">{labels.method}</div>
-            <div className="col-span-2 text-right">{labels.amount}</div>
-            <div className="col-span-1 text-right">{labels.receipt}</div>
-          </div>
-          <div className="divide-y divide-black/10 dark:divide-white/10">
-            {rows === null ? (
-              <div className="p-4 text-sm opacity-70">…</div>
-            ) : rows.length === 0 ? (
-              <div className="p-4 text-sm opacity-70">No records</div>
-            ) : (
-              rows.map((p) => (
-                <div key={p.id} className="grid grid-cols-12 px-3 py-3 text-sm">
-                  <div className="col-span-4">
-                    <div className="font-medium">{p.property}</div>
-                  </div>
-                  <div className="col-span-3 opacity-70">{new Date(p.createdAt).toLocaleString(locale)}</div>
-                  <div className="col-span-2 opacity-70">{p.method}</div>
-                  <div className="col-span-2 text-right font-medium">{currency(p.amount, locale)}</div>
-                  <div className="col-span-1 text-right">
-                    <Link href={`/tenant/receipt/${p.id}`} className="text-emerald-600 hover:underline">
-                      #
-                    </Link>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">{L.title}</h1>
+          <button
+            onClick={() => exportToCSV(csv, "landlord_ledger")}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
+          >
+            {L.export}
+          </button>
+        </div>
+
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
+          {rows === null ? (
+            <TableSkel rows={8} />
+          ) : rows.length === 0 ? (
+            <div className="text-sm opacity-70">No entries.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-black/5 dark:bg-white/5 text-xs uppercase tracking-wide">
+                <tr className="text-left">
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Property</th>
+                  <th className="px-3 py-2">Method</th>
+                  <th className="px-3 py-2">Amount</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p) => (
+                  <tr key={p.id} className="border-t border-black/10 dark:border-white/10">
+                    <td className="px-3 py-2">{new Date(p.createdAt).toLocaleString(locale)}</td>
+                    <td className="px-3 py-2">{p.property}</td>
+                    <td className="px-3 py-2">{p.method}</td>
+                    <td className="px-3 py-2">{formatPKR(p.amount)}</td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={
+                          p.status === "SENT"
+                            ? "text-[11px] px-2 py-0.5 rounded bg-emerald-600 text-white"
+                            : "text-[11px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-700 dark:text-yellow-300"
+                        }
+                      >
+                        {p.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Link
+                        href={`/tenant/receipt/${p.id}`}
+                        className="text-xs px-2 py-1 rounded border border-black/10 dark:border-white/10"
+                      >
+                        {L.receipt}
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </section>
       </div>
     </AppShell>
