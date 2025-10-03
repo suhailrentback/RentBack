@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
-import exportToCSV from "@/lib/csv";
+import { exportToCSV } from "@/lib/csv";
 
 export default function LandlordPayoutsPage() {
   const { lang, locale } = useLang();
