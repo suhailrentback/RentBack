@@ -2,7 +2,7 @@
 
 import AppShell from "@/components/AppShell";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
 import { useLang } from "@/hooks/useLang";
 import { exportToCSV } from "@/lib/csv";
@@ -19,30 +19,21 @@ export default function LandlordLedgerPage() {
   }, []);
 
   const L = lang === "ur"
-    ? {
-        title: "لیجر",
-        export: "CSV",
-        receipt: "رسید",
-      }
-    : {
-        title: "Ledger",
-        export: "CSV",
-        receipt: "Receipt",
-      };
+    ? { title: "لیجر", export: "CSV", receipt: "رسید" }
+    : { title: "Ledger", export: "CSV", receipt: "Receipt" };
 
-  const csv = useMemo(() => {
-    if (!rows) return "";
-    const header = ["id", "createdAt", "property", "method", "amount", "status"];
-    const body = rows.map((r) => [
-      r.id,
-      new Date(r.createdAt).toLocaleString(locale),
-      r.property,
-      r.method,
-      String(r.amount),
-      r.status,
-    ]);
-    return [header, ...body].map((a) => a.map((s) => `"${String(s).replace(/"/g, '""')}"`).join(",")).join("\n");
-  }, [rows, locale]);
+  const handleExport = () => {
+    if (!rows) return;
+    const data = rows.map((r) => ({
+      id: r.id,
+      createdAt: new Date(r.createdAt).toLocaleString(locale),
+      property: r.property,
+      method: r.method,
+      amount: r.amount,
+      status: r.status,
+    }));
+    exportToCSV(data, "landlord_ledger");
+  };
 
   return (
     <AppShell role="landlord" title={L.title}>
@@ -50,7 +41,7 @@ export default function LandlordLedgerPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">{L.title}</h1>
           <button
-            onClick={() => exportToCSV(csv, "landlord_ledger")}
+            onClick={handleExport}
             className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
           >
             {L.export}
