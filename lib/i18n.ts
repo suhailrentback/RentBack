@@ -1,117 +1,33 @@
+// lib/i18n.ts
 // Simple i18n bundle used by the demo. No JSX here—pure TypeScript only.
 
 export type Lang = "en" | "ur";
 
 export const dirFor = (lang: Lang) => (lang === "ur" ? "rtl" : "ltr");
-export const localeFor = (lang: Lang): Intl.LocalesArgument => (lang === "ur" ? "ur-PK" : "en-PK");
 
-// Define the shape once so both languages must match
-interface BaseStrings {
-  app: string;
-  demo: string;
-  needHelp: string;
-  support: string;
-  nav: { home: string };
-  bottom: { home: string; pay: string; rewards: string; profile: string };
-  toggles: { dark: string; light: string; urdu: string; english: string };
-  receipt: {
-    title: string;
-    demo: string;
-    print: string;
-    sent: string;
-    pending: string;
-    qrLabel: string;
-    backHome: string;
-    makeAnotherPayment: string;
-    rewardsLinkLabel: string;
-    notFoundTitle: string;
-    notFoundBody: string;
-    details: {
-      tenant: string;
-      email: string;
-      property: string;
-      amount: string;
-      method: string;
-      date: string;
-      raastRef: string;
-      status: string;
-      raast: string;
-    };
-  };
-  tenant: {
-    home: {
-      title: string;
-      subtitle: string;
-      rentDue: string;
-      quickPay: string;
-      rewardsBalance: string;
-      lastPayment: string;
-      viewReceipt: string;
-      shortcuts: { pay: string; rewards: string; receipts: string; support: string };
-    };
-    pay: {
-      title: string;
-      subtitle: string;
-      property: string;
-      amount: string;
-      method: string;
-      methods: { RAAST: string; BANK: string; JAZZCASH: string };
-      create: string;
-      markSent: string;
-      sent: string;
-      pending: string;
-      warnBelowDue: string;
-      receipt: string;
-      print: string;
-    };
-    receipt: BaseStrings["receipt"];
-    rewards: {
-      title: string;
-      balance: string;
-      redeem: string;
-      activity: string;
-      earned: string;
-      redeemed: string;
-      voucherCode: string;
-      progress: { toGold: string };
-      empty: string;
-    };
-    profile: {
-      title: string;
-      signOut: string;
-      privacy: string;
-      terms: string;
-      needHelp: string;
-    };
-  };
-  landlord: {
-    home: {
-      title: string;
-      welcome: string;
-      quickLinks: { ledger: string };
-    };
-    properties: {
-      title: string;
-      subtitle: string;
-      none: string;
-      tenants: string;
-      expected: string;
-      due: string;
-      status: string;
-      active: string;
-    };
-  };
-}
+// ↓↓↓ ADD THIS SMALL HELPER ↓↓↓
+export const localeFor = (lang: Lang): Intl.LocalesArgument =>
+  lang === "ur" ? "ur-PK" : "en-PK";
 
-export const strings: Record<Lang, BaseStrings> = {
+export const strings = {
   en: {
     app: "RentBack",
     demo: "Demo",
     needHelp: "Need help?",
     support: "Support",
     nav: { home: "Home" },
-    bottom: { home: "Home", pay: "Pay", rewards: "Rewards", profile: "Profile" },
-    toggles: { dark: "Dark", light: "Light", urdu: "اردو", english: "English" },
+    bottom: {
+      home: "Home",
+      pay: "Pay",
+      rewards: "Rewards",
+      profile: "Profile",
+    },
+    toggles: {
+      dark: "Dark",
+      light: "Light",
+      urdu: "اردو",
+      english: "English",
+    },
     receipt: {
       title: "Payment Receipt",
       demo: "Demo: Not a real payment",
@@ -145,7 +61,12 @@ export const strings: Record<Lang, BaseStrings> = {
         rewardsBalance: "Rewards balance",
         lastPayment: "Last payment",
         viewReceipt: "View receipt",
-        shortcuts: { pay: "Pay Rent", rewards: "Rewards", receipts: "Receipts", support: "Support" },
+        shortcuts: {
+          pay: "Pay Rent",
+          rewards: "Rewards",
+          receipts: "Receipts",
+          support: "Support",
+        },
       },
       pay: {
         title: "Pay Rent",
@@ -153,7 +74,11 @@ export const strings: Record<Lang, BaseStrings> = {
         property: "Property",
         amount: "Amount (PKR)",
         method: "Payment method",
-        methods: { RAAST: "Raast (demo)", BANK: "Bank Transfer (demo)", JAZZCASH: "JazzCash (demo)" },
+        methods: {
+          RAAST: "Raast (demo)",
+          BANK: "Bank Transfer (demo)",
+          JAZZCASH: "JazzCash (demo)",
+        },
         create: "Create Payment",
         markSent: "Mark as Sent",
         sent: "Sent",
@@ -194,7 +119,9 @@ export const strings: Record<Lang, BaseStrings> = {
         earned: "Earned",
         redeemed: "Redeemed",
         voucherCode: "Voucher code",
-        progress: { toGold: "You're {{pts}} pts away from Gold Tier" },
+        progress: {
+          toGold: "You're {{pts}} pts away from Gold Tier",
+        },
         empty: "Make a rent payment to start earning points.",
       },
       profile: {
@@ -209,7 +136,9 @@ export const strings: Record<Lang, BaseStrings> = {
       home: {
         title: "Landlord Dashboard",
         welcome: "Overview of payouts, ledger and properties",
-        quickLinks: { ledger: "View Ledger" },
+        quickLinks: {
+          ledger: "View Ledger",
+        },
       },
       properties: {
         title: "Properties",
@@ -222,15 +151,41 @@ export const strings: Record<Lang, BaseStrings> = {
         active: "Active",
       },
     },
+    // NEW: Founder page
+    founder: {
+      title: "Our Founder",
+      subtitle:
+        "RentBack was created to make paying rent rewarding, transparent, and simple.",
+      story:
+        "Led by our founder, Suhail Ahmed, RentBack is building the future of rent payments in Pakistan and beyond. The mission is to transform an everyday expense into an opportunity for financial growth, security, and rewards.",
+      vision:
+        "This demo is the first step — showing how technology, design, and trust can come together. Soon, RentBack will expand into a full platform that benefits tenants, landlords, and partners equally.",
+      closing: "Thank you for being part of our journey.",
+      actions: {
+        home: "Home",
+        signIn: "Sign in",
+      },
+    },
   },
+
   ur: {
     app: "رينٹ بیک",
     demo: "ڈیمو",
     needHelp: "مدد چاہیے؟",
     support: "سپورٹ",
     nav: { home: "ہوم" },
-    bottom: { home: "ہوم", pay: "ادائیگی", rewards: "انعامات", profile: "پروفائل" },
-    toggles: { dark: "ڈارک", light: "لائٹ", urdu: "اردو", english: "English" },
+    bottom: {
+      home: "ہوم",
+      pay: "ادائیگی",
+      rewards: "انعامات",
+      profile: "پروفائل",
+    },
+    toggles: {
+      dark: "ڈارک",
+      light: "لائٹ",
+      urdu: "اردو",
+      english: "English",
+    },
     receipt: {
       title: "ادائیگی کی رسید",
       demo: "ڈیمو: حقیقی ادائیگی نہیں",
@@ -264,7 +219,12 @@ export const strings: Record<Lang, BaseStrings> = {
         rewardsBalance: "انعامات کا بیلنس",
         lastPayment: "آخری ادائیگی",
         viewReceipt: "رسید دیکھیں",
-        shortcuts: { pay: "کرایہ ادا کریں", rewards: "انعامات", receipts: "رسیدیں", support: "سپورٹ" },
+        shortcuts: {
+          pay: "کرایہ ادا کریں",
+          rewards: "انعامات",
+          receipts: "رسیدیں",
+          support: "سپورٹ",
+        },
       },
       pay: {
         title: "کرایہ ادا کریں",
@@ -272,7 +232,11 @@ export const strings: Record<Lang, BaseStrings> = {
         property: "پراپرٹی",
         amount: "رقم (PKR)",
         method: "ادائیگی کا طریقہ",
-        methods: { RAAST: "راست (ڈیمو)", BANK: "بینک ٹرانسفر (ڈیمو)", JAZZCASH: "جاز کیش (ڈیمو)" },
+        methods: {
+          RAAST: "راست (ڈیمو)",
+          BANK: "بینک ٹرانسفر (ڈیمو)",
+          JAZZCASH: "جاز کیش (ڈیمو)",
+        },
         create: "ادائیگی بنائیں",
         markSent: "بھیجا ہوا نشان زد کریں",
         sent: "بھیجا گیا",
@@ -313,7 +277,9 @@ export const strings: Record<Lang, BaseStrings> = {
         earned: "کمائے",
         redeemed: "چھڑائے",
         voucherCode: "واؤچر کوڈ",
-        progress: { toGold: "آپ گولڈ ٹائر سے {{pts}} پوائنٹس دور ہیں" },
+        progress: {
+          toGold: "آپ گولڈ ٹائر سے {{pts}} پوائنٹس دور ہیں",
+        },
         empty: "پوائنٹس کمانا شروع کرنے کے لیے کرایہ کی ادائیگی کریں۔",
       },
       profile: {
@@ -328,7 +294,9 @@ export const strings: Record<Lang, BaseStrings> = {
       home: {
         title: "مکان مالک کا ڈیش بورڈ",
         welcome: "ادائیگیوں، لیجر اور جائیدادوں کا جائزہ",
-        quickLinks: { ledger: "لیجر دیکھیں" },
+        quickLinks: {
+          ledger: "لیجر دیکھیں",
+        },
       },
       properties: {
         title: "جائیدادیں",
@@ -339,6 +307,21 @@ export const strings: Record<Lang, BaseStrings> = {
         due: "اگلی تاریخ",
         status: "حیثیت",
         active: "فعال",
+      },
+    },
+    // NEW: Founder page (Urdu)
+    founder: {
+      title: "ہمارے بانی",
+      subtitle:
+        "RentBack کرایہ کی ادائیگی کو فائدہ مند، شفاف اور سادہ بنانے کے لیے تیار کیا گیا ہے۔",
+      story:
+        "ہمارے بانی، سہیل احمد، کی قیادت میں RentBack پاکستان اور اس سے آگے کرایہ ادائیگیوں کا مستقبل بنا رہا ہے۔ مقصد یہ ہے کہ ایک روزمرہ خرچ کو مالی ترقی، تحفظ اور انعامات کے موقع میں بدلا جائے۔",
+      vision:
+        "یہ ڈیمو پہلا قدم ہے — دکھاتا ہے کہ ٹیکنالوجی، ڈیزائن اور اعتماد کیسے مل کر کام کر سکتے ہیں۔ جلد ہی RentBack ایک مکمل پلیٹ فارم بنے گا جو کرایہ داروں، مکان مالکان اور پارٹنرز سب کے لیے یکساں فائدہ مند ہو۔",
+      closing: "ہمارے سفر کا حصہ بننے کا شکریہ۔",
+      actions: {
+        home: "ہوم",
+        signIn: "سائن اِن",
       },
     },
   },
