@@ -1,3 +1,8 @@
-// hooks/useLang.ts
-// Thin re-export so all pages can import from "@/hooks/useLang" consistently.
-export { useLang } from "@/providers/LangProvider";
+"use client";
+
+import { useContext } from "react";
+import { LangContext } from "@/providers/LangProvider";
+
+export function useLang() {
+  return useContext(LangContext);
+}
