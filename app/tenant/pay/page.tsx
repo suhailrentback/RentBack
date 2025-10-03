@@ -3,218 +3,196 @@
 import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
-import { type Status } from "@/lib/demo";
 import {
-  type DemoPayment,
-  type Method,
-  type RewardsState,
   loadPayments,
   savePayments,
-  loadRewards,
-  saveRewards,
+  type DemoPayment,
+  type Method,
+  type Status,
 } from "@/lib/demo";
 
-type FormState = {
-  property: string;
-  amount: string; // keep as string for input, convert to number when saving
-  method: Method;
-};
-
 const formatPKR = (v: number, locale: Intl.LocalesArgument) =>
-  new Intl.NumberFormat(locale, { style: "currency", currency: "PKR", maximumFractionDigits: 0 })
-    .format(Math.round(v))
-    .replace("PKR", "Rs");
+  `Rs ${Math.round(v).toLocaleString(locale)}`;
 
 export default function TenantPayPage() {
   const { t, locale } = useLang();
 
-  const [payments, setPayments] = useState<DemoPayment[]>([]);
-  const [rewards, setRewards] = useState<RewardsState | null>(null);
+  // form state
+  const [property, setProperty] = useState("");
+  const [amount, setAmount] = useState<number | "">("");
+  const [method, setMethod] = useState<Method>("RAAST");
 
-  // Local form state
-  const [form, setForm] = useState<FormState>({
-    property: "",
-    amount: "",
-    method: "RAAST",
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdId, setCreatedId] = useState<string | null>(null);
+  // data state
+  const [payments, setPayments] = useState<DemoPayment[] | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [markingId, setMarkingId] = useState<string | null>(null);
 
   useEffect(() => {
     setPayments(loadPayments());
-    setRewards(loadRewards());
   }, []);
 
-  const amountNumber = useMemo(() => {
-    const n = Number(form.amount.replace(/,/g, ""));
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  }, [form.amount]);
+  const dueAmount = 65000; // demo constant
+  const belowDueWarning = useMemo(() => {
+    if (amount === "") return false;
+    return Number(amount) < dueAmount;
+  }, [amount]);
 
-  const canCreate = useMemo(() => {
-    return form.property.trim().length > 0 && amountNumber > 0 && !isSubmitting;
-  }, [form.property, amountNumber, isSubmitting]);
+  const createPayment = async () => {
+    if (!property || amount === "" || Number(amount) <= 0) return;
+    setCreating(true);
 
-  function onChange<K extends keyof FormState>(key: K, val: FormState[K]) {
-    setForm((s) => ({ ...s, [key]: val }));
-  }
+    // make new demo payment
+    const created: DemoPayment = {
+      id: Math.random().toString(36).slice(2, 9).toUpperCase(),
+      createdAt: new Date().toISOString(),
+      property,
+      amount: Number(amount),
+      method,
+      status: "PENDING" as Status,
+    };
 
-  // Create Payment (status PENDING)
-  async function handleCreatePayment() {
-    if (!canCreate) return;
-    setIsSubmitting(true);
-    try {
-      const id = `p_${Math.random().toString(36).slice(2, 10)}`;
-      const createdAt = new Date().toISOString();
+    const next = [created, ...(payments ?? [])];
+    savePayments(next);
+    setPayments(next);
+    setCreating(false);
 
-      const newPayment: DemoPayment = {
-        id,
-        createdAt,
-        property: form.property.trim(),
-        amount: amountNumber,
-        method: form.method,
-        status: "PENDING",
-      };
+    // reset form
+    setProperty("");
+    setAmount("");
+    setMethod("RAAST");
+  };
 
-      const next = [newPayment, ...payments];
-      savePayments(next);
-      setPayments(next);
-      setCreatedId(id);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  const markSent = async (id: string) => {
+    if (!payments) return;
+    setMarkingId(id);
 
-  // Mark as SENT and credit +1% rewards
-  async function handleMarkSent() {
-    if (!createdId) return;
-    setIsSubmitting(true);
-    try {
-      const all = loadPayments();
-      const next = all.map((p) => (p.id === createdId ? { ...p, status: "SENT" } : p));
-      savePayments(next);
-      setPayments(next);
+    const next = payments.map((p) => (p.id === id ? { ...p, status: "SENT" as Status } : p));
+    savePayments(next);
+    setPayments(next);
 
-      // +1% rewards credit
-      const credited = Math.round((next.find((p) => p.id === createdId)?.amount ?? 0) * 0.01);
-
-      const prev = loadRewards();
-      const activityItem = {
-        id: `rw_${createdId}`,
-        type: "EARN" as const,
-        points: credited,
-        createdAt: new Date().toISOString(),
-      };
-
-      const updated: RewardsState = {
-        balance: prev.balance + credited,
-        activity: [activityItem, ...prev.activity],
-      };
-
-      saveRewards(updated);
-      setRewards(updated);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+    setMarkingId(null);
+  };
 
   return (
     <AppShell role="tenant" title={t.tenant.pay.title} subtitle={t.tenant.pay.subtitle}>
-      <div className="p-4 space-y-5">
-        {/* Form Card */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5 space-y-4">
-          {/* Property */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.property}</label>
-            <input
-              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g., 12-A, Sunset Apartments"
-              value={form.property}
-              onChange={(e) => onChange("property", e.target.value)}
-            />
+      <div className="p-4 space-y-6">
+        {/* Pay card */}
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white/60 dark:bg-white/5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Property */}
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-70">{t.tenant.pay.property}</span>
+              <input
+                className="px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 outline-none"
+                placeholder="e.g., 12-A, Sunset Apartments"
+                value={property}
+                onChange={(e) => setProperty(e.target.value)}
+              />
+            </label>
+
+            {/* Amount */}
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-70">{t.tenant.pay.amount}</span>
+              <input
+                className="px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 outline-none"
+                placeholder="e.g., 75000"
+                inputMode="numeric"
+                value={amount}
+                onChange={(e) => {
+                  const v = e.target.value.replace(/[^\d]/g, "");
+                  setAmount(v === "" ? "" : Number(v));
+                }}
+              />
+              {belowDueWarning && (
+                <span className="text-xs text-amber-600 dark:text-amber-400">
+                  {t.tenant.pay.warnBelowDue}
+                </span>
+              )}
+            </label>
+
+            {/* Method */}
+            <label className="flex flex-col gap-1">
+              <span className="text-xs opacity-70">{t.tenant.pay.method}</span>
+              <select
+                className="px-3 py-2 rounded-lg bg-white dark:bg-neutral-900 border border-black/10 dark:border-white/10 outline-none"
+                value={method}
+                onChange={(e) => setMethod(e.target.value as Method)}
+              >
+                <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
+                <option value="BANK">{t.tenant.pay.methods.BANK}</option>
+                <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
+              </select>
+            </label>
           </div>
 
-          {/* Amount */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.amount}</label>
-            <input
-              inputMode="decimal"
-              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-              placeholder="e.g., 75000"
-              value={form.amount}
-              onChange={(e) => onChange("amount", e.target.value)}
-            />
-            {amountNumber <= 0 && form.amount.length > 0 ? (
-              <div className="text-xs text-red-600">{t.tenant.pay.warnBelowDue}</div>
-            ) : null}
-          </div>
-
-          {/* Method */}
-          <div className="space-y-1">
-            <label className="block text-xs opacity-70">{t.tenant.pay.method}</label>
-            <select
-              className="w-full rounded-lg border border-black/10 dark:border-white/10 bg-transparent px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-              value={form.method}
-              onChange={(e) => onChange("method", e.target.value as Method)}
-            >
-              <option value="RAAST">{t.tenant.pay.methods.RAAST}</option>
-              <option value="BANK">{t.tenant.pay.methods.BANK}</option>
-              <option value="JAZZCASH">{t.tenant.pay.methods.JAZZCASH}</option>
-            </select>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2">
             <button
-              onClick={handleCreatePayment}
-              disabled={!canCreate}
-              className={`px-4 py-2 rounded-lg text-sm text-white ${
-                canCreate ? "bg-emerald-600 hover:bg-emerald-700" : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
-              }`}
+              onClick={createPayment}
+              disabled={creating || !property || amount === "" || Number(amount) <= 0}
+              className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-sm"
             >
               {t.tenant.pay.create}
             </button>
-
-            <button
-              onClick={handleMarkSent}
-              disabled={!createdId || isSubmitting}
-              className={`px-4 py-2 rounded-lg text-sm text-white ${
-                createdId && !isSubmitting
-                  ? "bg-emerald-600 hover:bg-emerald-700"
-                  : "bg-black/20 dark:bg-white/20 cursor-not-allowed"
-              }`}
-            >
-              {t.tenant.pay.markSent}
-            </button>
-
-            {isSubmitting ? <span className="text-xs opacity-70">…</span> : null}
+            {amount !== "" && (
+              <span className="text-xs opacity-70">
+                {formatPKR(Number(amount), locale)}
+              </span>
+            )}
           </div>
+        </section>
 
-          {/* Status note */}
-          {createdId ? (
-            <div className="text-xs opacity-70">
-              {t.tenant.pay.receipt}: <span className="font-mono">{createdId}</span>
+        {/* Recent payments */}
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold opacity-80">{t.tenant.pay.receipt}</h3>
+          <div className="rounded-2xl border border-black/10 dark:border-white/10 overflow-hidden">
+            {/* header row */}
+            <div className="grid grid-cols-5 gap-2 px-3 py-2 text-xs opacity-70">
+              <div>{t.tenant.receipt.details.property}</div>
+              <div className="text-right">{t.tenant.receipt.details.amount}</div>
+              <div>{t.tenant.receipt.details.method}</div>
+              <div>{t.tenant.receipt.details.date}</div>
+              <div className="text-right">{t.tenant.receipt.details.status}</div>
             </div>
-          ) : null}
-        </section>
-
-        {/* Latest payment preview */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
-          <div className="text-sm font-medium">{t.tenant.home.lastPayment}</div>
-          <div className="mt-2 text-xs opacity-70">
-            {payments.length
-              ? `${payments[0].property} • ${payments[0].method} • ${new Date(
-                  payments[0].createdAt
-                ).toLocaleString(locale)}`
-              : t.tenant.rewards.empty}
-          </div>
-        </section>
-
-        {/* Rewards summary */}
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
-          <div className="text-sm font-medium">{t.tenant.rewards.title}</div>
-          <div className="mt-2 text-xs opacity-70">
-            {t.tenant.rewards.balance}: <span className="font-semibold">{rewards ? rewards.balance : 0} pts</span>
+            <div className="h-px bg-black/10 dark:bg-white/10" />
+            {/* rows */}
+            {payments === null ? (
+              <div className="p-3">
+                <div className="h-6 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+              </div>
+            ) : payments.length === 0 ? (
+              <div className="p-3 text-sm opacity-70">{t.tenant.rewards.empty}</div>
+            ) : (
+              payments.map((p) => (
+                <div key={p.id} className="grid grid-cols-5 gap-2 px-3 py-2 text-sm items-center">
+                  <div className="truncate">{p.property}</div>
+                  <div className="text-right">{formatPKR(p.amount, locale)}</div>
+                  <div className="truncate">{t.tenant.pay.methods[p.method]}</div>
+                  <div className="truncate">
+                    {new Date(p.createdAt).toLocaleString(locale)}
+                  </div>
+                  <div className="text-right flex items-center justify-end gap-2">
+                    <span
+                      className={
+                        p.status === "SENT"
+                          ? "text-emerald-600 font-medium"
+                          : "text-yellow-700 dark:text-yellow-300 font-medium"
+                      }
+                    >
+                      {p.status === "SENT" ? t.tenant.pay.sent : t.tenant.pay.pending}
+                    </span>
+                    {p.status !== "SENT" && (
+                      <button
+                        onClick={() => markSent(p.id)}
+                        disabled={markingId === p.id}
+                        className="px-2 py-1 rounded-md border border-black/10 dark:border-white/10 text-xs"
+                      >
+                        {t.tenant.pay.markSent}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </section>
       </div>
