@@ -1,53 +1,64 @@
-// providers/LangProvider.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { strings, type Lang, dirFor, localeFor } from "@/lib/i18n";
+import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
+import { dirFor, localeFor, strings, type Lang } from "@/lib/i18n";
 
-// Use a single compatible type for both locales to avoid literal-type conflicts
-type TStrings = typeof strings.en & typeof strings.ur;
+type TStrings = (typeof strings)["en"]; // both languages conform to same shape
 
 type Ctx = {
   lang: Lang;
   setLang: (l: Lang) => void;
   t: TStrings;
   locale: Intl.LocalesArgument;
-  dir: "ltr" | "rtl";
 };
 
-const LanguageContext = createContext<Ctx | null>(null);
+export const LangContext = createContext<Ctx>({
+  lang: "en",
+  setLang: () => {},
+  t: strings.en,
+  locale: "en-PK",
+});
 
-export function useLang(): Ctx {
-  const ctx = useContext(LanguageContext);
-  if (!ctx) throw new Error("useLang must be used within <LangProvider>");
-  return ctx;
-}
+export function LangProvider({ children }: { children: React.ReactNode }) {
+  const [lang, setLangState] = useState<Lang>("en");
 
-export default function LangProvider({ children }: { children: React.ReactNode }) {
-  const [lang, setLang] = useState<Lang>(() => {
-    if (typeof window === "undefined") return "en";
-    const fromLS = window.localStorage.getItem("rb_lang");
-    return fromLS === "ur" || fromLS === "en" ? (fromLS as Lang) : "en";
-  });
+  // read persisted lang on client
+  useEffect(() => {
+    try {
+      const saved = typeof window !== "undefined" ? window.localStorage.getItem("lang") : null;
+      if (saved === "en" || saved === "ur") setLangState(saved);
+    } catch {}
+  }, []);
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l);
+    try {
+      if (typeof window !== "undefined") window.localStorage.setItem("lang", l);
+      if (typeof document !== "undefined") {
+        document.documentElement.dir = dirFor(l);
+        document.documentElement.lang = l;
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem("rb_lang", lang);
-      document.documentElement.setAttribute("dir", dirFor(lang));
-      document.documentElement.setAttribute("lang", lang);
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = dirFor(lang);
+      document.documentElement.lang = lang;
     }
   }, [lang]);
 
-  const value = useMemo<Ctx>(() => {
-    const t = strings[lang] as unknown as TStrings; // safe: both locales share the same shape
-    return {
+  const t = useMemo(() => strings[lang], [lang]);
+
+  const value: Ctx = useMemo(
+    () => ({
       lang,
       setLang,
       t,
       locale: localeFor(lang),
-      dir: dirFor(lang),
-    };
-  }, [lang]);
+    }),
+    [lang, setLang, t]
+  );
 
-  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+  return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
