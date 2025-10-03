@@ -1,79 +1,79 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
-import { useLang } from "@/hooks/useLang";
+import { useEffect, useMemo, useState } from "react";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
-import { localeFor } from "@/lib/i18n";
+import { useLang } from "@/hooks/useLang";
 import { exportToCSV } from "@/lib/csv";
+import { TableSkel } from "@/components/Skeletons";
 
-const formatPKR = (v: number, locale: Intl.LocalesArgument) =>
-  `Rs ${Math.round(v).toLocaleString(locale)}`;
+const formatPKR = (v: number) => `Rs ${Math.round(v).toLocaleString("en-PK")}`;
 
 export default function LandlordPayoutsPage() {
-  const { lang } = useLang();
-  const title = lang === "ur" ? "پے آؤٹس" : "Payouts";
-  const locale = useMemo(() => localeFor(lang), [lang]);
-
+  const { lang, locale } = useLang();
   const [rows, setRows] = useState<DemoPayment[] | null>(null);
+
   useEffect(() => {
-    // Treat SENT payments as paid out (demo)
-    const all = loadPayments().filter((p) => p.status === "SENT");
-    setRows(all);
+    // Demo “payouts” == SENT
+    setRows(loadPayments().filter((r) => r.status === "SENT"));
   }, []);
 
-  const csv = useMemo(
-    () =>
-      (rows ?? []).map((p) => ({
-        id: p.id,
-        date: new Date(p.createdAt).toLocaleString(locale),
-        property: p.property,
-        method: p.method,
-        amount: p.amount,
-        status: p.status,
-      })),
-    [rows, locale]
-  );
+  const L = lang === "ur"
+    ? { title: "ادائیگیاں", export: "CSV" }
+    : { title: "Payouts", export: "CSV" };
+
+  const csv = useMemo(() => {
+    if (!rows) return "";
+    const header = ["id", "createdAt", "property", "method", "amount"];
+    const body = rows.map((r) => [
+      r.id,
+      new Date(r.createdAt).toLocaleString(locale),
+      r.property,
+      r.method,
+      String(r.amount),
+    ]);
+    return [header, ...body].map((a) => a.map((s) => `"${String(s).replace(/"/g, '""')}"`).join(",")).join("\n");
+  }, [rows, locale]);
 
   return (
-    <AppShell role="landlord" title={title}>
+    <AppShell role="landlord" title={L.title}>
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{title}</h1>
+          <h1 className="text-xl font-semibold">{L.title}</h1>
           <button
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
-            disabled={!rows}
             onClick={() => exportToCSV(csv, "landlord_payouts")}
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
           >
-            CSV
+            {L.export}
           </button>
         </div>
 
         <section className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
-          {!rows ? (
-            <div className="space-y-2">
-              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
-              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
-              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
-            </div>
+          {rows === null ? (
+            <TableSkel rows={8} />
           ) : rows.length === 0 ? (
-            <div className="text-sm opacity-70">
-              {lang === "ur" ? "کوئی پے آؤٹ نہیں۔" : "No payouts yet."}
-            </div>
+            <div className="text-sm opacity-70">No payouts.</div>
           ) : (
-            <ul className="divide-y divide-black/10 dark:divide-white/10">
-              {rows.map((p) => (
-                <li key={p.id} className="flex items-center justify-between px-2 py-2">
-                  <div className="flex flex-col">
-                    <div className="font-medium">{p.property}</div>
-                    <div className="text-xs opacity-70">
-                      {new Date(p.createdAt).toLocaleString(locale)} • {p.method}
-                    </div>
-                  </div>
-                  <div className="text-sm font-semibold">{formatPKR(p.amount, locale)}</div>
-                </li>
-              ))}
-            </ul>
+            <table className="w-full text-sm">
+              <thead className="bg-black/5 dark:bg-white/5 text-xs uppercase tracking-wide">
+                <tr className="text-left">
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Property</th>
+                  <th className="px-3 py-2">Method</th>
+                  <th className="px-3 py-2">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((p) => (
+                  <tr key={p.id} className="border-t border-black/10 dark:border-white/10">
+                    <td className="px-3 py-2">{new Date(p.createdAt).toLocaleString(locale)}</td>
+                    <td className="px-3 py-2">{p.property}</td>
+                    <td className="px-3 py-2">{p.method}</td>
+                    <td className="px-3 py-2">{formatPKR(p.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </section>
       </div>
