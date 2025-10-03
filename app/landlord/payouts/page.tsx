@@ -4,55 +4,77 @@ import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
 import { loadPayments, type DemoPayment } from "@/lib/demo";
+import { localeFor } from "@/lib/i18n";
 import { exportToCSV } from "@/lib/csv";
 
+const formatPKR = (v: number, locale: Intl.LocalesArgument) =>
+  `Rs ${Math.round(v).toLocaleString(locale)}`;
+
 export default function LandlordPayoutsPage() {
-  const { lang, locale } = useLang();
+  const { lang } = useLang();
+  const title = lang === "ur" ? "پے آؤٹس" : "Payouts";
+  const locale = useMemo(() => localeFor(lang), [lang]);
+
   const [rows, setRows] = useState<DemoPayment[] | null>(null);
-
-  const labels = {
-    en: { title: "Payouts", csv: "CSV", next: "Next Payout", count: "Payments", total: "Total" },
-    ur: { title: "ادائیگیاں", csv: "CSV", next: "اگلی ادائیگی", count: "ادائیگیاں", total: "کل" },
-  }[lang];
-
   useEffect(() => {
-    setRows(loadPayments());
+    // Treat SENT payments as paid out (demo)
+    const all = loadPayments().filter((p) => p.status === "SENT");
+    setRows(all);
   }, []);
 
-  const summary = useMemo(() => {
-    const data = rows ?? [];
-    const total = data.reduce((s, r) => s + r.amount, 0);
-    return { count: data.length, total };
-  }, [rows]);
+  const csv = useMemo(
+    () =>
+      (rows ?? []).map((p) => ({
+        id: p.id,
+        date: new Date(p.createdAt).toLocaleString(locale),
+        property: p.property,
+        method: p.method,
+        amount: p.amount,
+        status: p.status,
+      })),
+    [rows, locale]
+  );
 
   return (
-    <AppShell role="landlord" title={labels.title}>
+    <AppShell role="landlord" title={title}>
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <div className="text-sm opacity-70">
-            {labels.next}: {new Date().toLocaleDateString(locale)}
-          </div>
+          <h1 className="text-xl font-semibold">{title}</h1>
           <button
-            onClick={() => {
-              const csv = (rows ?? []).map((r) => ({
-                id: r.id,
-                createdAt: new Date(r.createdAt).toLocaleString(locale),
-                property: r.property,
-                method: r.method,
-                amount: r.amount,
-                status: r.status,
-              }));
-              exportToCSV(csv, "landlord_payouts");
-            }}
-            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm"
+            className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm disabled:opacity-50"
+            disabled={!rows}
+            onClick={() => exportToCSV(csv, "landlord_payouts")}
           >
-            {labels.csv}
+            CSV
           </button>
         </div>
 
-        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4 bg-white dark:bg-white/5">
-          <div className="text-sm">{labels.count}: {summary.count.toLocaleString(locale)}</div>
-          <div className="mt-1 text-sm">{labels.total}: {summary.total.toLocaleString(locale)}</div>
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-3">
+          {!rows ? (
+            <div className="space-y-2">
+              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+              <div className="h-9 rounded bg-black/10 dark:bg-white/10 animate-pulse" />
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="text-sm opacity-70">
+              {lang === "ur" ? "کوئی پے آؤٹ نہیں۔" : "No payouts yet."}
+            </div>
+          ) : (
+            <ul className="divide-y divide-black/10 dark:divide-white/10">
+              {rows.map((p) => (
+                <li key={p.id} className="flex items-center justify-between px-2 py-2">
+                  <div className="flex flex-col">
+                    <div className="font-medium">{p.property}</div>
+                    <div className="text-xs opacity-70">
+                      {new Date(p.createdAt).toLocaleString(locale)} • {p.method}
+                    </div>
+                  </div>
+                  <div className="text-sm font-semibold">{formatPKR(p.amount, locale)}</div>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </AppShell>
