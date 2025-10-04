@@ -5,17 +5,18 @@ import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
 
 export default function NotFound() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
-  // Fallbacks in case these keys don't exist in i18n yet
+  // Minimal, safe labels using keys we already have + lang fallback
   const L = {
     title: "404",
     desc:
-      t?.support ??
-      "This page could not be found.",
-    home: t?.nav?.home ?? "Home",
-    signIn: t?.auth?.signIn ?? "Sign in",
-    support: t?.support ?? "Support",
+      lang === "ur"
+        ? "یہ صفحہ نہیں ملا۔"
+        : "This page could not be found.",
+    home: t?.nav?.home ?? (lang === "ur" ? "ہوم" : "Home"),
+    signIn: lang === "ur" ? "سائن اِن" : "Sign in",
+    support: t?.support ?? (lang === "ur" ? "سپورٹ" : "Support"),
   };
 
   return (
@@ -25,9 +26,7 @@ export default function NotFound() {
           <div className="text-6xl font-extrabold text-emerald-600 dark:text-emerald-400">
             404
           </div>
-          <p className="mt-3 text-sm opacity-80">
-            {L.desc}
-          </p>
+          <p className="mt-3 text-sm opacity-80">{L.desc}</p>
 
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
