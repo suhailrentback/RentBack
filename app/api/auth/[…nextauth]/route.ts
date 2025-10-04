@@ -1,9 +1,10 @@
-// app/api/auth/[...nextauth]/route.ts
-import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth";
+// Demo build-safe stub for legacy NextAuth route.
+// We don't use NextAuth in this demo; sign-in is cookie-based.
 
-const handler = NextAuth(authOptions);
+export async function GET() {
+  return new Response("Auth disabled in demo.", { status: 404 });
+}
 
-// IMPORTANT: only export HTTP methods here.
-// Do NOT export authOptions or any other names from a route file.
-export { handler as GET, handler as POST };
+export async function POST() {
+  return new Response("Auth disabled in demo.", { status: 404 });
+}
