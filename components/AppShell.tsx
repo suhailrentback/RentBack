@@ -1,80 +1,81 @@
 "use client";
 
+import { ReactNode } from "react";
 import Link from "next/link";
-import { PropsWithChildren } from "react";
-import { useLang } from "@/hooks/useLang";
+import { usePathname } from "next/navigation";
 
-// If your project already has these role nav components, keep these imports.
-// If a role doesn't exist in your app, feel free to delete the unused import.
+import { useLang } from "@/hooks/useLang";
 import RoleNavTenant from "@/components/nav/RoleNavTenant";
 import RoleNavLandlord from "@/components/nav/RoleNavLandlord";
 import RoleNavAdmin from "@/components/nav/RoleNavAdmin";
 
 type Role = "tenant" | "landlord" | "admin";
 
-type Props = PropsWithChildren<{
-  /** Page title shown under the header */
+type Props = {
   title?: string;
-  /** Which app role shell to use (controls bottom nav). Omit to hide bottom nav by default. */
   role?: Role;
-  /** Force-hides the bottom nav even if role is provided (useful for Founder/Sign-in/etc). */
   hideBottomNav?: boolean;
-}>;
+  children?: ReactNode;
+};
 
-export default function AppShell({ children, title, role, hideBottomNav }: Props) {
-  const { lang, setLang } = useLang();
+export default function AppShell({ title, role, hideBottomNav, children }: Props) {
+  const pathname = usePathname(); // <-- provide to RoleNavs
+  const { lang, setLang, t } = useLang();
+
   const dir = lang === "ur" ? "rtl" : "ltr";
+  const L = {
+    app: t.app,
+    navHome: t.nav.home,
+    toggles: t.toggles,
+  };
 
   return (
     <div
       className="min-h-screen bg-white text-slate-900 dark:bg-[#0b0b0b] dark:text-white"
       style={{ direction: dir }}
     >
-      {/* Header */}
+      {/* Top bar */}
       <header className="sticky top-0 z-30 border-b border-black/10 dark:border-white/10 bg-white/70 dark:bg-black/30 backdrop-blur">
-        <div className="mx-auto max-w-4xl px-4 h-14 flex items-center justify-between">
-          {/* Brand */}
-          <Link href="/" className="flex items-center gap-2 font-bold text-emerald-600 dark:text-emerald-400">
+        <div className="mx-auto max-w-6xl px-4 h-14 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
             <Logo />
             <span>RentBack</span>
           </Link>
 
-          {/* Right controls */}
-          <nav className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <Link
               href="/"
               className="px-3 py-1.5 text-sm rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
             >
-              {lang === "en" ? "Home" : "ہوم"}
+              {L.navHome}
             </Link>
-
             <button
+              type="button"
               onClick={() => setLang(lang === "en" ? "ur" : "en")}
               className="px-3 py-1.5 text-sm rounded-lg border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
-              aria-label="toggle language"
             >
-              {lang === "en" ? "اردو" : "English"}
+              {lang === "en" ? L.toggles.urdu : L.toggles.english}
             </button>
-          </nav>
+          </div>
         </div>
       </header>
 
-      {/* Title (optional) */}
+      {/* Page header */}
       {title ? (
-        <div className="mx-auto max-w-4xl px-4 py-4">
-          <h1 className="text-xl font-semibold">{title}</h1>
+        <div className="mx-auto max-w-6xl px-4 py-3">
+          <h1 className="text-lg font-semibold">{title}</h1>
         </div>
       ) : null}
 
-      {/* Main content */}
-      <main className="mx-auto max-w-4xl px-4 pb-20">{children}</main>
+      {/* Page body */}
+      <main className="pb-20">{children}</main>
 
-      {/* Bottom nav (role-based) */}
+      {/* Bottom nav (role-scoped). We now pass currentPath to satisfy types. */}
       {!hideBottomNav && role ? (
-        <div className="fixed inset-x-0 bottom-0 z-20">
-          {role === "tenant" && <RoleNavTenant />}
-          {role === "landlord" && <RoleNavLandlord />}
-          {role === "admin" && <RoleNavAdmin />}
+        <div className="fixed inset-x-0 bottom-0 z-20 bg-white/80 dark:bg-black/40 backdrop-blur border-t border-black/10 dark:border-white/10">
+          {role === "tenant" && <RoleNavTenant currentPath={pathname} />}
+          {role === "landlord" && <RoleNavLandlord currentPath={pathname} />}
+          {role === "admin" && <RoleNavAdmin currentPath={pathname} />}
         </div>
       ) : null}
     </div>
