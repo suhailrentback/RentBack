@@ -2,17 +2,17 @@
 
 This is the demo application for **RentBack Technologies (Pvt) Ltd**, built for sandbox testing and proof of concept.
 
-### Features
+## Features
 - Tenant, Landlord, and Admin demo roles (set via Sign In)
 - Pay Rent (mock payments, no real processing)
 - Rewards accrual (mock 1% credit)
 - Urdu/English toggle, Light/Dark mode
 - Mobile-first app-like UI
 
-### Disclaimer
-This demo does **not** process real payments. All data is mock for demonstration purposes only.  
-Company registered with **SECP** under the name: **RentBack Technologies (Pvt) Ltd**.  
+## Legal / Company
+- Company: **RentBack Technologies (Pvt) Ltd**
+- Email: **help@rentback.app**
+- Website: **https://www.rentback.app**
 
-### Contact
-📩 help@rentback.app
-🌐 [https://www.rentback.app](https://www.rentback.app)
+## Disclaimer
+This demo does **not** process real payments. All data is mock for demonstration purposes only.
