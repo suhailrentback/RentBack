@@ -134,20 +134,19 @@ export default function LandingPage() {
         </section>
 
         {/* Footer */}
-        <footer className="py-10 text-xs opacity-70">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>© {new Date().getFullYear()} RentBack Technologies (SMC-Private) Limited</span>
-            <div className="text-left">
-              <div>Registered with SECP under Companies Act, 2017</div>
-            </div>
-            <div className="flex gap-4">
-              <Link href="/privacy" className="hover:opacity-100 opacity-80">{t.privacy}</Link>
-              <Link href="/founder" className="hover:opacity-100 opacity-80">{t.founder}</Link>
-              <a href="#" className="hover:opacity-100 opacity-80">{t.terms}</a>
-              <a href="mailto:founders@rentback.pk" className="hover:opacity-100 opacity-80">{t.contact}</a>
-            </div>
-          </div>
-        </footer>
+        
+    <footer className="py-10 text-xs opacity-70">
+  <div className="flex flex-wrap items-center justify-between gap-3">
+    <span>© {new Date().getFullYear()} RentBack Technologies (Pvt) Ltd</span>
+    <div className="flex gap-4">
+      <Link href="/privacy" className="hover:opacity-100 opacity-80">Privacy</Link>
+      <Link href="/founder" className="hover:opacity-100 opacity-80">Founder</Link>
+      <a href="#" className="hover:opacity-100 opacity-80">Terms</a>
+      <a href="mailto:help@rentback.app" className="hover:opacity-100 opacity-80">Contact</a>
+    </div>
+  </div>
+</footer>
+        
       </main>
     </div>
   );
