@@ -1,24 +1,18 @@
-# RentBack (Clean Full)
+# RentBack Demo App
 
-Fresh Next.js App Router project targeting a clean fintech UI for Pakistan.
-Includes:
-- Landing + Sign-in
-- Tenant (Home, Pay, Rewards, Profile)
-- Landlord (Dashboard, Ledger, Settings)
-- Admin (Overview, Transactions, Users)
-- i18n (English/Urdu with RTL), Light/Dark toggle
-- Demo Pay/Rewards logic stored in localStorage + CSV exports
+This is the demo application for **RentBack Technologies (Pvt) Ltd**, built for sandbox testing and proof of concept.
 
-## Quickstart
-```bash
-npm i
-npm run dev
-# open http://localhost:3000
-```
+### Features
+- Tenant, Landlord, and Admin demo roles (set via Sign In)
+- Pay Rent (mock payments, no real processing)
+- Rewards accrual (mock 1% credit)
+- Urdu/English toggle, Light/Dark mode
+- Mobile-first app-like UI
 
-## Build
-```bash
-npm run build && npm start
-```
+### Disclaimer
+This demo does **not** process real payments. All data is mock for demonstration purposes only.  
+Company registered with **SECP** under the name: **RentBack Technologies (Pvt) Ltd**.  
 
-No backend; all data is demo/localStorage.
+### Contact
+📩 help@rentback.app
+🌐 [https://www.rentback.app](https://www.rentback.app)
