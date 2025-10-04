@@ -1,6 +1,6 @@
 # RentBack Demo App
 
-This is the demo application for **RentBack Technologies (Pvt) Ltd**, built for sandbox testing and proof of concept.
+This is the demo application for **RentBack Technologies SMC (Pvt) Ltd**, built for sandbox testing and proof of concept.
 
 ## Features
 - Tenant, Landlord, and Admin demo roles (set via Sign In)
@@ -10,7 +10,7 @@ This is the demo application for **RentBack Technologies (Pvt) Ltd**, built for 
 - Mobile-first app-like UI
 
 ## Legal / Company
-- Company: **RentBack Technologies (Pvt) Ltd**
+- Company: **RentBack Technologies SMC (Pvt) Ltd**
 - Email: **help@rentback.app**
 - Website: **https://www.rentback.app**
 
