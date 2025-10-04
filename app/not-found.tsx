@@ -7,7 +7,6 @@ import { useLang } from "@/hooks/useLang";
 export default function NotFound() {
   const { t, lang } = useLang();
 
-  // Safe labels using existing keys + fallbacks
   const L = {
     title: "404",
     headline: lang === "ur" ? "صفحہ نہیں ملا" : "Page not found",
@@ -24,7 +23,7 @@ export default function NotFound() {
   return (
     <AppShell title={L.title} hideBottomNav>
       <div className="relative p-6">
-        {/* Soft gradient aura like other pages */}
+        {/* Soft gradient aura */}
         <div
           className="pointer-events-none absolute inset-0 -z-10 opacity-40 dark:opacity-30"
           aria-hidden
@@ -34,9 +33,8 @@ export default function NotFound() {
           }}
         />
 
-        {/* Card */}
         <section className="mx-auto max-w-2xl rounded-2xl border border-black/10 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur p-8 text-center">
-          {/* 404 badge */}
+          {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-xl px-3 py-1 border border-black/10 dark:border-white/10 text-xs tracking-wide">
             <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-600 dark:bg-emerald-400" />
             <span className="opacity-70">404</span>
@@ -45,43 +43,45 @@ export default function NotFound() {
           <h1 className="mt-4 text-2xl md:text-3xl font-bold">{L.headline}</h1>
           <p className="mt-2 text-sm opacity-80">{L.desc}</p>
 
-          {/* Helpful actions */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          {/* Button group — perfectly centered & aligned */}
+          <div className="mt-7 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <Link
               href="/"
-              className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+              className="h-11 w-full inline-flex items-center justify-center rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
             >
               {L.home}
             </Link>
             <Link
               href="/sign-in"
-              className="h-11 px-5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+              className="h-11 w-full inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
             >
               {L.signIn}
             </Link>
             <Link
               href="/support"
-              className="h-11 px-5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+              className="h-11 w-full inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
             >
               {L.support}
             </Link>
             <button
               type="button"
-              onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = "/"))}
-              className="h-11 px-5 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
+              onClick={() =>
+                window.history.length > 1
+                  ? window.history.back()
+                  : (window.location.href = "/")
+              }
+              className="h-11 w-full inline-flex items-center justify-center rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10"
             >
               {L.goBack}
             </button>
           </div>
 
-          {/* Tiny tips row */}
-          <div className="mt-6 grid gap-2 text-xs opacity-70">
-            <p>
-              {lang === "ur"
-                ? "ٹائپنگ چیک کریں یا ہوم پیج سے دوبارہ آغاز کریں۔"
-                : "Check the URL for typos, or start again from the home page."}
-            </p>
-          </div>
+          {/* Tip */}
+          <p className="mt-6 text-xs opacity-70">
+            {lang === "ur"
+              ? "ٹائپنگ چیک کریں یا ہوم پیج سے دوبارہ آغاز کریں۔"
+              : "Check the URL for typos, or start again from the home page."}
+          </p>
         </section>
       </div>
     </AppShell>
