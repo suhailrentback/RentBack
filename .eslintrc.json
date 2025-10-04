@@ -5,7 +5,7 @@
       "error",
       {
         "selector": "JSXOpeningElement[name.name='AppShell'] JSXAttribute[name.name='subtitle']",
-        "message": "🚫 Do not use `subtitle` on <AppShell>. Render subtitle text inside the page body instead."
+        "message": "🚫 Do not use `subtitle` on <AppShell>. Render subtitle text in the page body instead."
       }
     ]
   }
