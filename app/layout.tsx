@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import LangProvider from "@/providers/LangProvider";
+import { LangProvider } from "@/providers/LangProvider"; // <-- named import
 
 export const metadata: Metadata = {
   title: "RentBack – Pay Rent, Earn Rewards",
