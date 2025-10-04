@@ -1,71 +1,51 @@
-// app/tenant/receipts/page.tsx
 "use client";
 
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useLang } from "@/hooks/useLang";
-import { loadPayments, type DemoPayment } from "@/lib/demo";
 
-export default function TenantReceiptsPage() {
-  const { t, locale } = useLang();
-  const [rows, setRows] = useState<DemoPayment[] | null>(null);
+export default function TenantReceiptPage() {
+  const { id } = useParams<{ id: string }>();
+  const { t } = useLang();
 
-  useEffect(() => {
-    setRows(loadPayments());
-  }, []);
-
-  const sorted = useMemo(
-    () =>
-      (rows ?? [])
-        .slice()
-        .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)),
-    [rows]
-  );
+  const L = t.tenant.receipt;
 
   return (
-    <AppShell
-      role="tenant"
-      title={t.tenant.home.shortcuts.receipts}
-      subtitle={t.tenant.home.subtitle}
-    >
-      <div className="p-4 space-y-3">
-        {rows === null ? (
-          <div className="h-16 rounded-xl bg-black/10 dark:bg-white/10 animate-pulse" />
-        ) : sorted.length === 0 ? (
-          <div className="text-sm opacity-70">
-            {t.tenant.rewards.empty /* reuse a friendly empty string */}
+    <AppShell role="tenant" title={L.title}>
+      <div className="p-4 space-y-4">
+        {/* Moved 'subtitle' text out of AppShell prop and into page body */}
+        <p className="text-sm opacity-70">{L.demo}</p>
+
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+          <div className="text-sm opacity-70">{L.qrLabel}</div>
+          <div className="mt-2">
+            <div className="text-xs opacity-60">{L.details.raastRef}</div>
+            <div className="font-mono text-sm">{id}</div>
           </div>
-        ) : (
-          <div className="space-y-2">
-            {sorted.map((p) => (
-              <Link
-                key={p.id}
-                href={`/tenant/receipt/${p.id}`}
-                className="block rounded-xl border border-black/10 dark:border-white/10 p-3 hover:bg-black/5 dark:hover:bg-white/5 transition"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">
-                      {new Intl.NumberFormat(locale, {
-                        style: "currency",
-                        currency: "PKR",
-                        maximumFractionDigits: 0,
-                      }).format(p.amount)}
-                    </div>
-                    <div className="text-xs opacity-70">
-                      {p.property} • {p.method} •{" "}
-                      {new Date(p.createdAt).toLocaleString(locale)}
-                    </div>
-                  </div>
-                  <div className="text-xs px-2 py-1 rounded-lg bg-black/5 dark:bg-white/10">
-                    {p.status}
-                  </div>
-                </div>
-              </Link>
-            ))}
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm"
+              onClick={() => window.print()}
+            >
+              {L.print}
+            </button>
+            <Link
+              href="/tenant"
+              className="px-3 py-1.5 rounded-lg border border-black/10 dark:border-white/10 text-sm"
+            >
+              {L.backHome}
+            </Link>
           </div>
-        )}
+        </section>
+
+        <section className="rounded-2xl border border-black/10 dark:border-white/10 p-4">
+          <div className="text-sm opacity-70">{L.details.status}</div>
+          <div className="mt-1 text-emerald-600 dark:text-emerald-400 font-medium">
+            {L.sent}
+          </div>
+        </section>
       </div>
     </AppShell>
   );
