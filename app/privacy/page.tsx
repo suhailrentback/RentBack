@@ -1,39 +1,17 @@
-"use client";
-import AppShell from "@/components/AppShell";
-import { useLang } from "@/hooks/useLang";
-
-export default function PrivacyPage() {
-  const { t } = useLang();
-
+export default function Privacy() {
   return (
-    <AppShell title="Privacy Policy" hideBottomNav>
-      <div className="p-6 space-y-6 text-sm leading-relaxed">
-        <p>
-          This is a demo application for <strong>RentBack Technologies (Pvt) Ltd</strong>.
-          No real payments are processed. All data shown is mock data for demonstration only.
-        </p>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-semibold">What we collect</h2>
-          <p>
-            This demo may store non-sensitive preferences (e.g., language, theme) in your browser’s
-            localStorage and cookies to improve your experience. We do not collect personal
-            information or payment data.
-          </p>
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="text-base font-semibold">Contact</h2>
-          <p>
-            Company: <strong>RentBack Technologies (Pvt) Ltd</strong><br />
-            Email: <a className="text-emerald-600 hover:underline" href="mailto:help@rentback.app">help@rentback.app</a>
-          </p>
-        </section>
-
-        <p className="opacity-70">
-          Updated: {new Date().toLocaleDateString()}
-        </p>
-      </div>
-    </AppShell>
+    <main className="mx-auto max-w-3xl px-4 py-10">
+      <h1 className="text-2xl font-bold">Privacy Policy</h1>
+      <p className="mt-3 opacity-80">
+        RentBack Technologies (Pvt) Ltd respects your privacy. This demo does not collect
+        personal data beyond basic, local-only demo cookies. For inquiries, email
+        <a className="underline ml-1" href="mailto:help@rentback.app">help@rentback.app</a>.
+      </p>
+      <h2 className="mt-8 font-semibold">Data in this demo</h2>
+      <ul className="list-disc pl-6 mt-2 opacity-80">
+        <li>Local demo cookie for role-based navigation (tenant/landlord/admin).</li>
+        <li>No payments are processed; all data shown is mock.</li>
+      </ul>
+    </main>
   );
 }
